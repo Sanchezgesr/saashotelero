@@ -146,9 +146,10 @@ export function Sidebar() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border flex justify-around items-center py-1 md:hidden z-50">
         {[
           { label: 'Dashboard',    icon: LayoutDashboard, href: '/hotel/dashboard' },
-          { label: 'Habitaciones', icon: BedDouble,       href: '/hotel/rooms' },
-          { label: 'Reservas',     icon: Calendar,        href: '/hotel/reservations' },
+          { label: 'Hab.',         icon: BedDouble,       href: '/hotel/rooms' },
           { label: 'Caja',         icon: Wallet,          href: '/hotel/cash' },
+          { label: 'Reservas',     icon: Calendar,        href: '/hotel/reservations' },
+          { label: 'Empleados',    icon: UserCog,         href: '/hotel/staff' },
         ].map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
