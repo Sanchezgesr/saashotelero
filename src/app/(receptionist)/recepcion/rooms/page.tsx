@@ -175,7 +175,7 @@ export default function RoomsPage() {
                   <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">Pendiente</span>
                   <button
                     onClick={(e) => handleDeleteReservation(e, res.id)}
-                    className="p-1 bg-red-50 text-red-500 rounded border border-red-100 hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                    className="p-1 bg-red-50 text-red-500 rounded border border-red-100 hover:bg-red-100 transition-colors md:opacity-0 md:group-hover:opacity-100 cursor-pointer"
                     title="Eliminar reserva"
                   >
                     <Trash2 size={11} />
