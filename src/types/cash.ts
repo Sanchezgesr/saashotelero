@@ -8,7 +8,10 @@ export interface CashMovement {
   description: string
   payment_method: string
   created_at: string
+  created_by?: string
+  checkin_id?: string
   closure_id: string | null
+  profiles?: { full_name: string } | null
 }
 
 export interface CashClosure {

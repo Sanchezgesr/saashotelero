@@ -17,6 +17,7 @@ export function CashMovementsTable({ movements, showDate }: { movements: CashMov
             <th className="px-4 py-3 font-medium">Monto</th>
             <th className="px-4 py-3 font-medium">Método</th>
             <th className="px-4 py-3 font-medium">Descripción</th>
+            <th className="px-4 py-3 font-medium">Responsable</th>
             {!showDate && <th className="px-4 py-3 font-medium">Hora</th>}
           </tr>
         </thead>
@@ -33,6 +34,7 @@ export function CashMovementsTable({ movements, showDate }: { movements: CashMov
               <td className="px-4 py-3 font-medium">S/. {Number(m.amount).toFixed(2)}</td>
               <td className="px-4 py-3 capitalize">{m.payment_method}</td>
               <td className="px-4 py-3 text-muted-foreground">{m.description}</td>
+              <td className="px-4 py-3 text-xs text-muted-foreground">{m.profiles?.full_name || '—'}</td>
               {!showDate && <td className="px-4 py-3 text-muted-foreground text-xs">{fmtTime(m.created_at)}</td>}
             </tr>
           ))}

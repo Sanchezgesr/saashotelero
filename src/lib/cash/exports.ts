@@ -20,11 +20,11 @@ export async function downloadCashReportPDF(
   const { tzOffset, localDate } = await import('@/lib/utils/dates')
 
   const { data: movs } = await supabase
-    .from('cash_movements').select('*')
+    .from('cash_movements').select('*, profiles(full_name)')
     .eq('hotel_id', hotelId)
     .gte('created_at', `${from}T00:00:00${tzOffset()}`)
     .lt('created_at', `${localDate(nd)}T00:00:00${tzOffset()}`)
-    .order('created_at', { ascending: false }) as { data: CashMovement[] | null }
+    .order('created_at', { ascending: false }) as { data: (CashMovement & { profiles: { full_name: string } | null })[] | null }
 
   if (!movs || !movs.length) return
 
@@ -44,10 +44,11 @@ export async function downloadCashReportPDF(
   doc.text(`Ingresos: S/. ${inc.toFixed(2)}  |  Egresos: S/. ${exp.toFixed(2)}  |  Balance: S/. ${(inc - exp).toFixed(2)}`, 14, y); y += 6
   doc.text(`Efectivo: S/. ${cash.toFixed(2)}  |  Tarjeta: S/. ${card.toFixed(2)}  |  Yape: S/. ${yape.toFixed(2)}  |  Plin: S/. ${plin.toFixed(2)}`, 14, y); y += 12
 
-  const headers = ['Fecha', 'Tipo', 'Categoría', 'Monto', 'Método', 'Descripción']
+  const headers = ['Fecha', 'Tipo', 'Categoría', 'Monto', 'Método', 'Descripción', 'Responsable']
   const rows = movs.map(m => [
     fmtDate(m.created_at), m.type === 'income' ? 'Ingreso' : 'Egreso', m.category,
     `S/. ${Number(m.amount).toFixed(2)}`, m.payment_method, m.description || '',
+    (m as any).profiles?.full_name || '—',
   ])
   ;(doc as any).autoTable({ head: [headers], body: rows, startY: y })
   const finalY = (doc as any).lastAutoTable.finalY + 15

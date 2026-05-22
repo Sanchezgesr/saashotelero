@@ -32,7 +32,7 @@ export function CashReportTab() {
     nd.setDate(nd.getDate() + 1)
 
     const { data } = await supabase
-      .from('cash_movements').select('*')
+      .from('cash_movements').select('*, profiles(full_name)')
       .eq('hotel_id', profile.hotel_id)
       .gte('created_at', `${f}T00:00:00${tzOffset()}`)
       .lt('created_at', `${localDate(nd)}T00:00:00${tzOffset()}`)
@@ -79,6 +79,7 @@ export function CashReportTab() {
       Monto: Number(m.amount).toFixed(2),
       Método: m.payment_method,
       Descripción: m.description || '',
+      Responsable: m.profiles?.full_name || '—',
     }))
     exportExcel(rows, 'reporte_movimientos')
   }

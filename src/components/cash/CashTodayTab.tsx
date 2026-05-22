@@ -42,7 +42,7 @@ export function CashTodayTab() {
     const startFilter = lastClosures?.[0]?.closed_at ?? todayStart
 
     const { data: m } = await supabase
-      .from('cash_movements').select('*')
+      .from('cash_movements').select('*, profiles(full_name)')
       .eq('hotel_id', profile.hotel_id)
       .gte('created_at', startFilter)
       .lt('created_at', todayEnd)
