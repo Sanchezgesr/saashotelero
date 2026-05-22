@@ -165,7 +165,7 @@ export default function RoomsPage() {
                         room.status === 'available' ? 'border-green-200 hover:border-green-400' :
                         room.status === 'occupied' ? 'border-red-200 hover:border-red-400' : 'border-border'
                       }`}>
-                      <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute top-4 right-4 flex gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => { setEditingRoom(room); setShowForm(true) }} title="Editar"
                           className="p-1 bg-primary/10 text-primary rounded border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
                           <Pencil size={12} />
@@ -216,7 +216,7 @@ export default function RoomsPage() {
                   <div key={res.id} onClick={() => setSelectedReservation(res)}
                     className="bg-white rounded-lg border border-amber-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group">
                     <button onClick={(e) => handleDeleteReservation(e, res.id)}
-                      className="absolute top-1.5 right-1.5 p-1 bg-red-50 text-red-500 rounded border border-red-100 hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer" title="Eliminar reserva">
+                      className="absolute top-1.5 right-1.5 p-1 bg-red-50 text-red-500 rounded border border-red-100 hover:bg-red-100 transition-colors md:opacity-0 md:group-hover:opacity-100 cursor-pointer" title="Eliminar reserva">
                       <Trash2 size={12} />
                     </button>
                     <p className="text-xs font-bold text-gray-800 truncate pr-6">{res.guests?.full_name}</p>
