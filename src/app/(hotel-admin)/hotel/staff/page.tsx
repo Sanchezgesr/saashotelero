@@ -39,58 +39,87 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Empleados</h1>
+        <h1 className="text-xl md:text-2xl font-bold">Empleados</h1>
         <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-          <Plus size={18} /> {showForm ? 'Cerrar' : 'Nuevo empleado'}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:opacity-90 cursor-pointer">
+          <Plus size={16} /> {showForm ? 'Cerrar' : 'Nuevo'}
         </button>
       </div>
 
       {showForm && <StaffForm hotelId={profile?.hotel_id!} onCreated={fetch} />}
 
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Nombre</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Rol</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-              <th className="px-4 py-3 font-medium">Acción</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
+      {staff.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">No hay empleados registrados.</p>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Nombre</th>
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Rol</th>
+                  <th className="px-4 py-3 font-medium">Estado</th>
+                  <th className="px-4 py-3 font-medium">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {staff.map((s) => (
+                  <tr key={s.id} className="hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium">{s.full_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.email}</td>
+                    <td className="px-4 py-3 capitalize text-muted-foreground">{s.role === 'receptionist' ? 'Recepcionista' : s.role}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {s.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleToggle(s)} disabled={toggling === s.id}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          s.is_active
+                            ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                            : 'bg-green-50 text-green-600 hover:bg-green-100'
+                        } disabled:opacity-50 cursor-pointer`}>
+                        {toggling === s.id ? '...' : s.is_active ? <Ban size={14} /> : <CheckCircle size={14} />}
+                        {s.is_active ? 'Suspender' : 'Activar'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
             {staff.map((s) => (
-              <tr key={s.id} className="hover:bg-muted/50">
-                <td className="px-4 py-3 font-medium">{s.full_name}</td>
-                <td className="px-4 py-3">{s.email}</td>
-                <td className="px-4 py-3 capitalize">{s.role === 'receptionist' ? 'Recepcionista' : s.role}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <div key={s.id} className="bg-card rounded-xl border border-border p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground text-sm">{s.full_name}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {s.is_active ? 'Activo' : 'Inactivo'}
                   </span>
-                </td>
-                <td className="px-4 py-3">
-                  <button onClick={() => handleToggle(s)} disabled={toggling === s.id}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      s.is_active
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                        : 'bg-green-50 text-green-600 hover:bg-green-100'
-                    } disabled:opacity-50`}>
-                    {toggling === s.id ? '...' : s.is_active ? <Ban size={14} /> : <CheckCircle size={14} />}
-                    {s.is_active ? 'Suspender' : 'Activar'}
-                  </button>
-                </td>
-              </tr>
+                </div>
+                <p className="text-xs text-muted-foreground">{s.email}</p>
+                <p className="text-xs text-muted-foreground capitalize">Rol: {s.role === 'receptionist' ? 'Recepcionista' : s.role}</p>
+                <button onClick={() => handleToggle(s)} disabled={toggling === s.id}
+                  className={`w-full flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    s.is_active
+                      ? 'bg-red-50 text-red-600 border border-red-200'
+                      : 'bg-green-50 text-green-600 border border-green-200'
+                  } disabled:opacity-50 cursor-pointer`}>
+                  {toggling === s.id ? '...' : s.is_active ? <Ban size={14} /> : <CheckCircle size={14} />}
+                  {s.is_active ? 'Suspender' : 'Activar'}
+                </button>
+              </div>
             ))}
-          </tbody>
-        </table>
-        {staff.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">No hay empleados registrados.</p>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -123,8 +152,8 @@ function StaffForm({ hotelId, onCreated }: { hotelId: string; onCreated: () => v
   }
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Nombre completo</label>
           <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -150,7 +179,7 @@ function StaffForm({ hotelId, onCreated }: { hotelId: string; onCreated: () => v
         </div>
       </div>
       <button onClick={handleSubmit} disabled={loading}
-        className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50">
+        className="mt-4 w-full md:w-auto bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer">
         <UserCog size={16} className="inline mr-1" />
         {loading ? 'Creando...' : 'Crear empleado'}
       </button>

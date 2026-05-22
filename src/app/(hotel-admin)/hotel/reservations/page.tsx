@@ -53,84 +53,124 @@ export default function ReservationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
-          <p className="text-gray-500 font-medium">Gestiona el calendario de futuras estadías y reservas.</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Reservas</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gestiona el calendario de futuras estadías y reservas.</p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-colors shadow-sm cursor-pointer">
-          <CalendarIcon size={18} /> {showForm ? 'Cerrar' : 'Nueva reserva'}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:opacity-90 transition-colors shadow-sm cursor-pointer">
+          <CalendarIcon size={16} /> {showForm ? 'Cerrar' : 'Nueva'}
         </button>
       </div>
 
       {showForm && <ReservationForm hotelId={profile?.hotel_id!} onCreated={() => { setShowForm(false); fetchList() }} onCancel={() => setShowForm(false)} />}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="p-6 space-y-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex items-center gap-6 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-36" /><div className="h-4 bg-gray-200 rounded w-20" />
-                  <div className="h-4 bg-gray-200 rounded w-24" /><div className="h-4 bg-gray-200 rounded w-24" />
-                  <div className="h-4 bg-gray-200 rounded w-20" /><div className="h-6 bg-gray-200 rounded-full w-24" /><div className="h-4 bg-gray-200 rounded w-16 ml-auto" />
-                </div>
-              ))}
+      {loading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-card rounded-xl border border-border p-4 animate-pulse">
+              <div className="h-4 bg-muted rounded w-36 mb-2" />
+              <div className="h-3 bg-muted rounded w-24 mb-2" />
+              <div className="h-3 bg-muted rounded w-20" />
             </div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Huésped</th>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Habitación</th>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Check-in</th>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Check-out</th>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Total</th>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Estado</th>
-                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {reservations.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{r.guests?.full_name ?? '—'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">Hab. {r.rooms?.number ?? '—'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{fmtDate(r.check_in_date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{fmtDate(r.check_out_date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap font-bold text-primary">S/. {r.total_price?.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase ${statusBadge[r.status]}`}>{statusLabel[r.status]}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
-                      <div className="flex justify-end gap-1.5">
-                        {r.status === 'pending' && (
-                          <button onClick={() => handleUpdateStatus(r.id, 'confirmed')}
-                            className="p-1 text-green-600 hover:bg-green-50 border border-green-100 rounded cursor-pointer" title="Confirmar Reserva">
-                            <CheckCircle size={14} />
-                          </button>
-                        )}
-                        {r.status !== 'cancelled' && r.status !== 'completed' && (
-                          <button onClick={() => handleUpdateStatus(r.id, 'cancelled')}
-                            className="p-1 text-orange-600 hover:bg-orange-50 border border-orange-100 rounded cursor-pointer" title="Cancelar Reserva">
-                            <XCircle size={14} />
-                          </button>
-                        )}
-                        <button onClick={() => handleDelete(r.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 border border-red-100 rounded cursor-pointer" title="Eliminar">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {(!loading && reservations.length === 0) && <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500">No hay reservas registradas.</td></tr>}
-              </tbody>
-            </table>
-          )}
+          ))}
         </div>
-      </div>
+      ) : reservations.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">No hay reservas registradas.</p>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted border-b border-border">
+                  <tr>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs">Huésped</th>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs">Habitación</th>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs">Check-in</th>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs">Check-out</th>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs">Total</th>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs">Estado</th>
+                    <th className="px-6 py-3 font-semibold text-muted-foreground uppercase text-xs text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {reservations.map((r) => (
+                    <tr key={r.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-foreground">{r.guests?.full_name ?? '—'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">Hab. {r.rooms?.number ?? '—'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{fmtDate(r.check_in_date)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{fmtDate(r.check_out_date)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-primary">S/. {r.total_price?.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase ${statusBadge[r.status]}`}>{statusLabel[r.status]}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
+                        <div className="flex justify-end gap-1.5">
+                          {r.status === 'pending' && (
+                            <button onClick={() => handleUpdateStatus(r.id, 'confirmed')}
+                              className="p-1 text-green-600 hover:bg-green-50 border border-green-100 rounded cursor-pointer" title="Confirmar Reserva">
+                              <CheckCircle size={14} />
+                            </button>
+                          )}
+                          {r.status !== 'cancelled' && r.status !== 'completed' && (
+                            <button onClick={() => handleUpdateStatus(r.id, 'cancelled')}
+                              className="p-1 text-orange-600 hover:bg-orange-50 border border-orange-100 rounded cursor-pointer" title="Cancelar Reserva">
+                              <XCircle size={14} />
+                            </button>
+                          )}
+                          <button onClick={() => handleDelete(r.id)}
+                            className="p-1 text-red-600 hover:bg-red-50 border border-red-100 rounded cursor-pointer" title="Eliminar">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {reservations.map((r) => (
+              <div key={r.id} className="bg-card rounded-xl border border-border p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground text-sm">{r.guests?.full_name ?? '—'}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge[r.status]}`}>{statusLabel[r.status]}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                  <span>Hab. {r.rooms?.number ?? '—'}</span>
+                  <span className="text-right font-bold text-primary">S/. {r.total_price?.toFixed(2)}</span>
+                  <span>Entrada: {fmtDate(r.check_in_date)}</span>
+                  <span className="text-right">Salida: {fmtDate(r.check_out_date)}</span>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  {r.status === 'pending' && (
+                    <button onClick={() => handleUpdateStatus(r.id, 'confirmed')}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 cursor-pointer">
+                      <CheckCircle size={12} /> Confirmar
+                    </button>
+                  )}
+                  {r.status !== 'cancelled' && r.status !== 'completed' && (
+                    <button onClick={() => handleUpdateStatus(r.id, 'cancelled')}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium bg-orange-50 text-orange-700 rounded-lg border border-orange-200 cursor-pointer">
+                      <XCircle size={12} /> Cancelar
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(r.id)}
+                    className="p-1.5 text-red-600 bg-red-50 rounded-lg border border-red-200 cursor-pointer">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
