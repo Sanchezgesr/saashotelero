@@ -62,22 +62,22 @@ export function Sidebar() {
     <>
       {/* Mobile hamburger */}
       <button onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed top-4 left-4 z-50 md:hidden bg-card border border-border p-2 rounded-lg shadow-sm cursor-pointer">
+        className="fixed top-4 left-4 z-50 md:hidden bg-card border border-border p-2.5 rounded-xl shadow-md cursor-pointer hover:bg-accent transition-colors">
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside className={cn(
         'fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-sidebar to-[#0f172a] flex-col transition-transform duration-300',
         'md:flex',
-        mobileOpen ? 'flex' : 'hidden'
+        mobileOpen ? 'flex translate-x-0' : 'hidden -translate-x-full md:translate-x-0'
       )}>
-        <div className="px-6 pt-6 pb-4">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
               <Building2 className="text-primary" size={20} />
@@ -87,6 +87,9 @@ export function Sidebar() {
               <p className="text-white font-bold text-sm truncate leading-tight mt-0.5">{hotelName || 'SControl'}</p>
             </div>
           </div>
+          <button onClick={() => setMobileOpen(false)} className="md:hidden text-white/60 hover:text-white p-1 cursor-pointer">
+            <X size={20} />
+          </button>
         </div>
 
         <div className="mx-4 h-px bg-white/5" />
