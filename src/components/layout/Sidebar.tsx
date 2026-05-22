@@ -143,20 +143,31 @@ export function Sidebar() {
       </aside>
 
       {/* Bottom nav mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 md:hidden z-50">
-        {menuItems.slice(0, 5).map((item) => {
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border flex justify-around items-center py-1 md:hidden z-50">
+        {[
+          { label: 'Dashboard',    icon: LayoutDashboard, href: '/hotel/dashboard' },
+          { label: 'Habitaciones', icon: BedDouble,       href: '/hotel/rooms' },
+          { label: 'Reservas',     icon: Calendar,        href: '/hotel/reservations' },
+          { label: 'Caja',         icon: Wallet,          href: '/hotel/cash' },
+        ].map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link key={item.href} href={item.href}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs transition-colors',
+                'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] transition-colors',
                 isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
               )}>
-              <Icon size={20} /> {item.label}
+              <Icon size={18} /> {item.label}
             </Link>
           )
         })}
+        <form action={signOut}>
+          <button type="submit"
+            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] text-muted-foreground cursor-pointer">
+            <LogOut size={18} /> Salir
+          </button>
+        </form>
       </nav>
     </>
   )
