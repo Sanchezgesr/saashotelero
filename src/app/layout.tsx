@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "SControl",
   description: "Sistema de gestión hotelera multi-tenant",
   manifest: "/manifest.webmanifest",
+  icons: {
+    apple: { url: "/icons/icon-192.svg", sizes: "192x192" },
+  },
   appleWebApp: {
     capable: true,
     title: "SControl",
@@ -25,9 +28,6 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "apple-touch-fullscreen": "yes",
   },
 };
 
@@ -41,9 +41,6 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" sizes="192x192" />
-      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <PWARegister />
