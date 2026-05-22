@@ -55,7 +55,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-y-auto">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
@@ -71,20 +71,22 @@ export default function LoginPage() {
         <div className="absolute top-1/2 right-12 flex-col gap-2 hidden lg:flex">{[7,11,5,9].map((s,i) => <div key={i} className="rounded-full bg-violet-400/10" style={{width:s,height:s}} />)}</div>
       </div>
 
-      <div className="relative pt-16 pb-10 px-4 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mb-5 animate-[fadeIn_0.6s_ease-out]">
-          <Building2 className="text-white" size={32} />
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="relative pt-6 md:pt-16 pb-4 md:pb-10 px-4 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mb-3 md:mb-5 animate-[fadeIn_0.6s_ease-out]">
+            <Building2 className="text-white" size={24} />
+          </div>
+          <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-1 md:mb-2 animate-[fadeIn_0.6s_ease-out_0.1s_both]">
+            <span className="text-blue-400">S</span>Control
+          </h1>
+          <p className="text-slate-400 text-sm md:text-lg max-w-md mx-auto animate-[fadeIn_0.6s_ease-out_0.2s_both]">
+            Gestiona tu hotel de forma fácil y centralizada
+          </p>
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-2 animate-[fadeIn_0.6s_ease-out_0.1s_both]">
-          <span className="text-blue-400">S</span>Control
-        </h1>
-        <p className="text-slate-400 text-base md:text-lg max-w-md mx-auto animate-[fadeIn_0.6s_ease-out_0.2s_both]">
-          Gestiona tu hotel de forma fácil y centralizada
-        </p>
-      </div>
 
-      <div className="max-w-md mx-auto px-4 pb-12 animate-[fadeIn_0.6s_ease-out_0.3s_both]">
-        <LoginCard onLogin={handleLogin} loading={loading} error={error} />
+        <div className="max-w-md mx-auto px-4 pb-4 md:pb-12 animate-[fadeIn_0.6s_ease-out_0.3s_both]">
+          <LoginCard onLogin={handleLogin} loading={loading} error={error} />
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 pb-14">
