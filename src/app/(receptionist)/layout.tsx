@@ -122,21 +122,34 @@ function Sidebar() {
 function BottomNav() {
   const pathname = usePathname()
 
+  const mobileItems = [
+    { label: 'Inicio',       icon: Home,      href: '/recepcion/dashboard' },
+    { label: 'Habitaciones', icon: BedDouble, href: '/recepcion/rooms' },
+    { label: 'Clientes',     icon: Users,     href: '/recepcion/guests' },
+    { label: 'Caja',         icon: Wallet,    href: '/recepcion/cash' },
+  ]
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 md:hidden z-50">
-      {menuItems.map((item) => {
+    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border flex justify-around items-center py-1 md:hidden z-50">
+      {mobileItems.map((item) => {
         const Icon = item.icon
         const isActive = pathname === item.href
         return (
           <Link key={item.href} href={item.href}
             className={cn(
-              'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs transition-colors',
+              'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] transition-colors',
               isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
             )}>
-            <Icon size={20} /> {item.label}
+            <Icon size={18} /> {item.label}
           </Link>
         )
       })}
+      <form action={signOut}>
+        <button type="submit"
+          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] text-muted-foreground cursor-pointer">
+          <LogOut size={18} /> Salir
+        </button>
+      </form>
     </nav>
   )
 }
