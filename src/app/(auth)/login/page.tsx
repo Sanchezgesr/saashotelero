@@ -74,11 +74,8 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center">
         <div className="relative pt-6 md:pt-16 pb-4 md:pb-10 px-4 text-center">
           <div className="mb-3 md:mb-5 animate-[fadeIn_0.6s_ease-out]">
-            <img src="/hcontrol.png" alt="HControl" className="w-24 h-24 md:w-28 md:h-28 mx-auto object-contain" />
+            <img src="/hcontrol.png" alt="HControl" className="w-48 h-48 md:w-56 md:h-56 mx-auto object-contain drop-shadow-xl" />
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold text-slate-800 tracking-tight mb-1 md:mb-2 animate-[fadeIn_0.6s_ease-out_0.1s_both]">
-            <span className="text-cyan-600">H</span>Control
-          </h1>
           <p className="text-slate-500 text-sm md:text-lg max-w-md mx-auto animate-[fadeIn_0.6s_ease-out_0.2s_both]">
             Gestiona tu hotel de forma fácil y centralizada
           </p>
