@@ -1,0 +1,8 @@
+Technovate-store
+node_modules
+.git
+.env
+.env.local
+*.md
+docs
+tests
