@@ -25,7 +25,7 @@ export function LoginCard({ onLogin, loading, error }: LoginCardProps) {
 
   return (
     <div className="relative">
-      <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-70" />
+      <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl opacity-70" />
       <div className="relative bg-white rounded-2xl shadow-2xl shadow-black/20 border border-slate-200 p-8">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-slate-900">Iniciar sesión</h2>
@@ -44,7 +44,7 @@ export function LoginCard({ onLogin, loading, error }: LoginCardProps) {
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={handleKeyDown}
-                className="w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                 placeholder="admin@hotel.com" autoComplete="email" autoFocus />
             </div>
           </div>
@@ -54,7 +54,7 @@ export function LoginCard({ onLogin, loading, error }: LoginCardProps) {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={handleKeyDown}
-                className="w-full border border-slate-300 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full border border-slate-300 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                 placeholder="••••••••" autoComplete="current-password" />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer" tabIndex={-1}>
@@ -65,12 +65,12 @@ export function LoginCard({ onLogin, loading, error }: LoginCardProps) {
 
           <div className="flex items-center gap-2">
             <input type="checkbox" id="remember" checked={remember} onChange={(e) => setRemember(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-blue-500 cursor-pointer" />
+              className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-cyan-500 cursor-pointer" />
             <label htmlFor="remember" className="text-sm text-slate-600 cursor-pointer select-none">Recordarme</label>
           </div>
 
           <button onClick={handleLogin} disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:from-blue-700 hover:to-cyan-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
             {loading ? <><Loader2 className="animate-spin" size={18} /> Ingresando...</> : <><LogIn size={18} /> Iniciar sesión</>}
           </button>
         </div>

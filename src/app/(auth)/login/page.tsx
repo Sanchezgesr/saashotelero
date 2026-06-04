@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, BedDouble, Users, Wallet, BarChart3, ShieldCheck, HeadphonesIcon, Star, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BedDouble, Users, Wallet, BarChart3, ShieldCheck, HeadphonesIcon, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LoginCard } from '@/components/auth/LoginCard'
 
 const benefits = [
@@ -55,20 +55,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-950 flex flex-col overflow-y-auto">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/4 left-1/3 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-violet-500/5 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/4 left-1/3 w-64 h-64 bg-sky-400/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-cyan-400/5 rounded-full blur-3xl" />
         <svg className="absolute inset-0 w-full h-full opacity-[0.03]">
-          <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" /></pattern></defs>
+          <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" /></pattern></defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
-        <div className="absolute top-20 left-10 flex gap-2">{[8,12,6].map((s,i) => <div key={i} className="rounded-full bg-blue-400/10" style={{width:s,height:s}} />)}</div>
-        <div className="absolute top-32 right-16 flex gap-2">{[6,10,8].map((s,i) => <div key={i} className="rounded-full bg-indigo-400/10" style={{width:s,height:s}} />)}</div>
-        <div className="absolute bottom-48 left-20 flex gap-1.5">{[10,6,8,12].map((s,i) => <div key={i} className="rounded-full bg-cyan-400/10" style={{width:s,height:s}} />)}</div>
-        <div className="absolute top-1/2 right-12 flex-col gap-2 hidden lg:flex">{[7,11,5,9].map((s,i) => <div key={i} className="rounded-full bg-violet-400/10" style={{width:s,height:s}} />)}</div>
+        <div className="absolute top-20 left-10 flex gap-2">{[8,12,6].map((s,i) => <div key={i} className="rounded-full bg-cyan-400/10" style={{width:s,height:s}} />)}</div>
+        <div className="absolute top-32 right-16 flex gap-2">{[6,10,8].map((s,i) => <div key={i} className="rounded-full bg-blue-400/10" style={{width:s,height:s}} />)}</div>
+        <div className="absolute bottom-48 left-20 flex gap-1.5">{[10,6,8,12].map((s,i) => <div key={i} className="rounded-full bg-sky-400/10" style={{width:s,height:s}} />)}</div>
+        <div className="absolute top-1/2 right-12 flex-col gap-2 hidden lg:flex">{[7,11,5,9].map((s,i) => <div key={i} className="rounded-full bg-cyan-400/10" style={{width:s,height:s}} />)}</div>
       </div>
 
       <div className="flex-1 flex flex-col justify-center">
@@ -77,7 +77,7 @@ export default function LoginPage() {
             <img src="/hcontrol.png" alt="HControl" className="w-24 h-24 md:w-28 md:h-28 mx-auto object-contain" />
           </div>
           <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-1 md:mb-2 animate-[fadeIn_0.6s_ease-out_0.1s_both]">
-            <span className="text-blue-400">S</span>Control
+            <span className="text-cyan-400">H</span>Control
           </h1>
           <p className="text-slate-400 text-sm md:text-lg max-w-md mx-auto animate-[fadeIn_0.6s_ease-out_0.2s_both]">
             Gestiona tu hotel de forma fácil y centralizada
@@ -96,7 +96,7 @@ export default function LoginPage() {
             const Icon = b.icon
             return (
               <div key={b.title} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:bg-white/10 transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3"><Icon className="text-blue-400" size={20} /></div>
+                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center mb-3"><Icon className="text-cyan-400" size={20} /></div>
                 <h3 className="text-white font-semibold text-sm mb-1">{b.title}</h3>
                 <p className="text-slate-400 text-xs leading-relaxed">{b.desc}</p>
               </div>
@@ -111,7 +111,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center text-center">
             <div className="flex gap-0.5 mb-4">{Array.from({ length: 5 }).map((_, i) => (<Star key={i} size={16} className={i < t.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'} />))}</div>
             <p className="text-white/90 text-sm md:text-base leading-relaxed italic mb-6 max-w-lg">&ldquo;{t.text}&rdquo;</p>
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm mb-2">{t.name.split(' ').map(n => n[0]).join('')}</div>
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold text-sm mb-2">{t.name.split(' ').map(n => n[0]).join('')}</div>
             <p className="text-white font-semibold text-sm">{t.name}</p>
             <p className="text-slate-400 text-xs">{t.role}</p>
           </div>
