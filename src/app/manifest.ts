@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'SControl - Hotel Management',
-    short_name: 'SControl',
+    name: 'HControl - Hotel Management',
+    short_name: 'HControl',
     description: 'Sistema de gestión hotelera multi-tenant',
     start_url: '/login',
     display: 'standalone',

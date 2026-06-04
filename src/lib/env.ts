@@ -18,5 +18,5 @@ export const env = {
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  appName: process.env.NEXT_PUBLIC_APP_NAME || 'SControl',
+  appName: process.env.NEXT_PUBLIC_APP_NAME || 'HControl',
 }

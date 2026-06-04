@@ -127,7 +127,7 @@ export default function LoginPage() {
 
       <div className="border-t border-white/10 max-w-5xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>&copy; {new Date().getFullYear()} SControl. Todos los derechos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} HControl. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <a href="#" className="hover:text-slate-300 transition-colors">Soporte</a>
             <a href="#" className="hover:text-slate-300 transition-colors">Privacidad</a>

@@ -52,7 +52,7 @@ export default function MetricsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Métricas del Negocio</h1>
-        <p className="text-gray-500">Analiza el crecimiento y rendimiento financiero de SControl.</p>
+        <p className="text-gray-500">Analiza el crecimiento y rendimiento financiero de HControl.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

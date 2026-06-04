@@ -31,7 +31,7 @@ export default function SuperAdminSidebar() {
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="p-6 flex items-center gap-2">
         <Hotel className="w-8 h-8 text-blue-600" />
-        <span className="text-xl font-bold text-gray-800">SControl</span>
+        <span className="text-xl font-bold text-gray-800">HControl</span>
       </div>
       
       <nav className="flex-1 px-4 space-y-1">

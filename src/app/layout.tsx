@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SControl",
+  title: "HControl",
   description: "Sistema de gestión hotelera multi-tenant",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "SControl",
+    title: "HControl",
     statusBarStyle: "black-translucent",
   },
   other: {

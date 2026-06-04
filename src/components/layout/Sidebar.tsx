@@ -84,7 +84,7 @@ export function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] uppercase tracking-[0.15em] text-sidebar-foreground/40 font-semibold">Bienvenido</p>
-              <p className="text-white font-bold text-sm truncate leading-tight mt-0.5">{hotelName || 'SControl'}</p>
+              <p className="text-white font-bold text-sm truncate leading-tight mt-0.5">{hotelName || 'HControl'}</p>
             </div>
           </div>
           <button onClick={() => setMobileOpen(false)} className="md:hidden text-white/60 hover:text-white p-1 cursor-pointer">
