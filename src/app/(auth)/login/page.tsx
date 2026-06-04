@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { BedDouble, Users, Wallet, BarChart3, ShieldCheck, HeadphonesIcon, Star, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BedDouble, Users, Wallet, BarChart3, ShieldCheck, HeadphonesIcon, Star, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { LoginCard } from '@/components/auth/LoginCard'
 
 const benefits = [
@@ -26,9 +26,10 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [testimonialIdx, setTestimonialIdx] = useState(0)
+  const [showMore, setShowMore] = useState(false)
   const t = testimonials[testimonialIdx]
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string, remember: boolean) => {
     if (!email.trim() || !password) { setError('Ingresa tu correo y contraseña'); return }
     setLoading(true); setError('')
 
@@ -40,6 +41,13 @@ export default function LoginPage() {
       else if (authError.message.includes('rate limit')) setError('Demasiados intentos. Espera unos minutos e intenta de nuevo.')
       else setError('Error al iniciar sesión. Intenta de nuevo.')
       setLoading(false); return
+    }
+
+    // Recordarme: persistir sesión por 30 días
+    if (remember) {
+      document.cookie = `_remember_me=true; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
+    } else {
+      document.cookie = '_remember_me=; path=/; max-age=0'
     }
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -71,21 +79,30 @@ export default function LoginPage() {
         <div className="absolute top-1/2 right-12 flex-col gap-2 hidden lg:flex">{[7,11,5,9].map((s,i) => <div key={i} className="rounded-full bg-cyan-300/40" style={{width:s,height:s}} />)}</div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="relative pt-6 md:pt-16 pb-4 md:pb-10 px-4 text-center">
-          <div className="mb-3 md:mb-5 animate-[fadeIn_0.6s_ease-out]">
-            <img src="/hcontrol.png" alt="HControl" className="w-48 h-48 md:w-56 md:h-56 mx-auto object-contain drop-shadow-xl" />
+      <div className="flex-1 flex flex-col justify-center min-h-[100dvh] md:min-h-0">
+        <div className="relative pt-4 md:pt-16 pb-2 md:pb-10 px-4 text-center">
+          <div className="mb-2 md:mb-5 animate-[fadeIn_0.6s_ease-out]">
+            <img src="/hcontrol.png" alt="HControl" className="w-32 h-32 md:w-56 md:h-56 mx-auto object-contain drop-shadow-xl" />
           </div>
-          <p className="text-slate-500 text-sm md:text-lg max-w-md mx-auto animate-[fadeIn_0.6s_ease-out_0.2s_both]">
+          <p className="text-slate-500 text-xs md:text-lg max-w-md mx-auto animate-[fadeIn_0.6s_ease-out_0.2s_both]">
             Gestiona tu hotel de forma fácil y centralizada
           </p>
         </div>
 
-        <div className="max-w-md mx-auto px-4 pb-4 md:pb-12 animate-[fadeIn_0.6s_ease-out_0.3s_both]">
+        <div className="max-w-md mx-auto px-4 pb-2 md:pb-12 animate-[fadeIn_0.6s_ease-out_0.3s_both]">
           <LoginCard onLogin={handleLogin} loading={loading} error={error} />
         </div>
       </div>
 
+      {/* Toggle beneficios / testimonios (visible en móvil, siempre en desktop) */}
+      <div className="md:hidden text-center pb-4">
+        <button onClick={() => setShowMore(!showMore)}
+          className="inline-flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-700 font-medium cursor-pointer">
+          {showMore ? 'Ocultar' : 'Ver más información'} <ChevronDown size={14} className={`transition-transform ${showMore ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+      <div className={`${showMore ? 'block' : 'hidden'} md:block`}>
       <div className="max-w-5xl mx-auto px-4 pb-14">
         <h2 className="text-slate-800 text-2xl font-bold text-center mb-8">Todo lo que necesitas para gestionar tu hotel</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -131,6 +148,7 @@ export default function LoginPage() {
             <a href="#" className="hover:text-slate-600 transition-colors">Términos</a>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Mail, Lock, Eye, EyeOff, Loader2, LogIn } from 'lucide-react'
 
 interface LoginCardProps {
-  onLogin: (email: string, password: string) => Promise<void>
+  onLogin: (email: string, password: string, remember: boolean) => Promise<void>
   loading: boolean
   error: string
 }
@@ -20,7 +20,7 @@ export function LoginCard({ onLogin, loading, error }: LoginCardProps) {
   }
 
   const handleLogin = async () => {
-    await onLogin(email, password)
+    await onLogin(email, password, remember)
   }
 
   return (

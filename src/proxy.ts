@@ -43,10 +43,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  const rememberMe = request.cookies.get('_remember_me')?.value
+  const sessionMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 86400 // 30 days o 1 day
+
   const sessionStart = request.cookies.get('_session_start')?.value
   if (!sessionStart) {
-    supabaseResponse.cookies.set('_session_start', String(Date.now()), { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 86400 })
-  } else if (Date.now() - Number(sessionStart) > 24 * 60 * 60 * 1000) {
+    supabaseResponse.cookies.set('_session_start', String(Date.now()), { httpOnly: true, secure: true, sameSite: 'lax', maxAge: sessionMaxAge })
+  } else if (Date.now() - Number(sessionStart) > sessionMaxAge * 1000) {
     await supabase.auth.signOut()
     return NextResponse.redirect(new URL('/login', request.url))
   }
