@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 
@@ -56,19 +57,24 @@ export async function resetUserPassword(email: string) {
 
 export async function deleteUser(userId: string) {
   const supabase = await createClient()
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 
   const { data: profile } = await supabase
     .from('profiles').select('hotel_id, full_name')
     .eq('id', userId)
     .single()
 
-  // Nullificar FK antes de eliminar el perfil
-  await supabase.from('checkins').update({ created_by: null }).eq('created_by', userId)
-  await supabase.from('cash_movements').update({ created_by: null }).eq('created_by', userId)
-  await supabase.from('audit_log').update({ user_id: null }).eq('user_id', userId)
-  await supabase.from('cash_closures').update({ closed_by: null }).eq('closed_by', userId)
+  // Nullificar FK usando admin client (bypass RLS)
+  await admin.from('checkins').update({ created_by: null }).eq('created_by', userId)
+  await admin.from('cash_movements').update({ created_by: null }).eq('created_by', userId)
+  await admin.from('audit_log').update({ user_id: null }).eq('user_id', userId)
+  await admin.from('cash_closures').update({ closed_by: null }).eq('closed_by', userId)
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await admin
     .from('profiles')
     .delete()
     .eq('id', userId)
