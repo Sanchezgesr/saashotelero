@@ -62,6 +62,12 @@ export async function deleteUser(userId: string) {
     .eq('id', userId)
     .single()
 
+  // Nullificar FK antes de eliminar el perfil
+  await supabase.from('checkins').update({ created_by: null }).eq('created_by', userId)
+  await supabase.from('cash_movements').update({ created_by: null }).eq('created_by', userId)
+  await supabase.from('audit_log').update({ user_id: null }).eq('user_id', userId)
+  await supabase.from('cash_closures').update({ closed_by: null }).eq('closed_by', userId)
+
   const { error: profileError } = await supabase
     .from('profiles')
     .delete()
