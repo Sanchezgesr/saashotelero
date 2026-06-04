@@ -73,8 +73,8 @@ export default function LoginPage() {
 
       <div className="flex-1 flex flex-col justify-center">
         <div className="relative pt-6 md:pt-16 pb-4 md:pb-10 px-4 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mb-3 md:mb-5 animate-[fadeIn_0.6s_ease-out]">
-            <Building2 className="text-white" size={24} />
+          <div className="mb-3 md:mb-5 animate-[fadeIn_0.6s_ease-out]">
+            <img src="/hcontrol.png" alt="HControl" className="w-24 h-24 md:w-28 md:h-28 mx-auto object-contain" />
           </div>
           <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-1 md:mb-2 animate-[fadeIn_0.6s_ease-out_0.1s_both]">
             <span className="text-blue-400">S</span>Control

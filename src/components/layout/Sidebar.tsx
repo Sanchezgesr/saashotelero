@@ -79,9 +79,7 @@ export function Sidebar() {
       )}>
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Building2 className="text-primary" size={20} />
-            </div>
+            <img src="/hcontrol.png" alt="HControl" className="w-12 h-12 object-contain" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] uppercase tracking-[0.15em] text-sidebar-foreground/40 font-semibold">Bienvenido</p>
               <p className="text-white font-bold text-sm truncate leading-tight mt-0.5">{hotelName || 'HControl'}</p>

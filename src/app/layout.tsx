@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description: "Sistema de gestión hotelera multi-tenant",
   manifest: "/manifest.webmanifest",
   icons: {
+    icon: { url: "/hcontrol.png", type: "image/png" },
     apple: { url: "/icons/icon-192.svg", sizes: "192x192" },
   },
   appleWebApp: {
