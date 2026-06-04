@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Search, Plus, Eye, Pencil } from 'lucide-react'
@@ -22,23 +22,29 @@ export default function GuestsPage() {
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
+  const [totalGuests, setTotalGuests] = useState(0)
 
   const fetchGuests = async () => {
     if (!profile?.hotel_id) return
     setLoading(true)
     const supabase = createClient()
-    let query = supabase.from('guests').select('*').eq('hotel_id', profile.hotel_id)
+    let query = supabase
+      .from('guests')
+      .select('*', { count: 'exact', head: false })
+      .eq('hotel_id', profile.hotel_id)
     if (search) { const esc = search.replace(/[%_]/g, '\\$&'); query = query.or(`full_name.ilike.%${esc}%,dni.ilike.%${esc}%`) }
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const from = (page - 1) * ITEMS_PER_PAGE
+    const to = from + ITEMS_PER_PAGE - 1
+    const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, to)
     if (error) toast.error('Error al cargar clientes')
-    else setGuests(data || [])
+    else { setGuests(data || []); setTotalGuests(count ?? 0) }
     setLoading(false)
   }
 
-  useEffect(() => { setPage(1); fetchGuests() }, [profile?.hotel_id, search])
+  useEffect(() => { setPage(1) }, [search])
+  useEffect(() => { fetchGuests() }, [profile?.hotel_id, search, page])
 
-  const totalPages = Math.max(1, Math.ceil(guests.length / ITEMS_PER_PAGE))
-  const paginatedGuests = useMemo(() => guests.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE), [guests, page])
+  const totalPages = Math.max(1, Math.ceil(totalGuests / ITEMS_PER_PAGE))
 
   const viewHistory = async (guest: Guest) => {
     setSelectedGuest(guest)
@@ -89,7 +95,7 @@ export default function GuestsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {paginatedGuests.map((g) => (
+              {guests.map((g) => (
                 <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{g.full_name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.dni ?? '—'}</td>
@@ -110,7 +116,7 @@ export default function GuestsPage() {
                   </td>
                 </tr>
               ))}
-              {(!loading && paginatedGuests.length === 0) && <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No hay clientes registrados.</td></tr>}
+              {(!loading && guests.length === 0) && <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No hay clientes registrados.</td></tr>}
             </tbody>
           </table><Pagination page={page} totalPages={totalPages} onPageChange={setPage} /></>)}
         </div>

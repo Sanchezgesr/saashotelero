@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { FileSearch, Clock, User, Building, Filter, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -14,8 +14,8 @@ export default function AuditPage() {
   const [loading, setLoading] = useState(true)
   const [showFilter, setShowFilter] = useState(false)
   const [page, setPage] = useState(1)
-  
-  // Filters
+  const [totalLogs, setTotalLogs] = useState(0)
+
   const [filterAction, setFilterAction] = useState('')
   const [filterEntity, setFilterEntity] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -23,11 +23,20 @@ export default function AuditPage() {
   const fetchLogs = async () => {
     setLoading(true)
     const supabase = createClient()
-    const { data, error } = await supabase
+    let query = supabase
       .from('audit_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(ITEMS_PER_PAGE)
+      .select('*', { count: 'exact', head: false })
+    if (filterAction) query = query.eq('action', filterAction)
+    if (filterEntity) query = query.eq('entity', filterEntity)
+
+    if (searchQuery) {
+      const esc = searchQuery.replace(/[%_]/g, '\\$&')
+      query = query.or(`action.ilike.%${esc}%,entity.ilike.%${esc}%,details::text.ilike.%${esc}%`)
+    }
+
+    const from = (page - 1) * ITEMS_PER_PAGE
+    const to = from + ITEMS_PER_PAGE - 1
+    const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, to)
 
     if (error) {
       if (error.message?.includes('audit_log') && error.message?.includes('schema cache')) {
@@ -63,36 +72,15 @@ export default function AuditPage() {
     } else {
       setLogs([])
     }
+    setTotalLogs(count ?? 0)
     setLoading(false)
   }
 
-  useEffect(() => {
-    fetchLogs()
-  }, [])
+  useEffect(() => { fetchLogs() }, [page, filterAction, filterEntity, searchQuery])
 
   useEffect(() => { setPage(1) }, [filterAction, filterEntity, searchQuery])
 
-  // Unique actions and entities for filter options
-  const uniqueActions = useMemo(() =>
-    Array.from(new Set(logs.map(log => log.action))).filter(Boolean),
-  [logs])
-
-  const uniqueEntities = useMemo(() =>
-    Array.from(new Set(logs.map(log => log.entity))).filter(Boolean),
-  [logs])
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      const matchesAction = filterAction === '' || log.action === filterAction
-      const matchesEntity = filterEntity === '' || log.entity === filterEntity
-      const text = `${log.action} ${log.entity} ${log.profiles?.full_name || ''} ${log.profiles?.email || ''} ${log.hotels?.name || ''}`.toLowerCase()
-      const matchesSearch = text.includes(searchQuery.toLowerCase())
-      return matchesAction && matchesEntity && matchesSearch
-    })
-  }, [logs, filterAction, filterEntity, searchQuery])
-
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE))
-  const paginatedLogs = filteredLogs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(totalLogs / ITEMS_PER_PAGE))
 
   return (
     <div className="space-y-6">
@@ -122,9 +110,12 @@ export default function AuditPage() {
               className="w-full bg-white border border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
             >
               <option value="">Todas las acciones</option>
-              {uniqueActions.map(action => (
-                <option key={action} value={action}>{action.replace(/_/g, ' ').toUpperCase()}</option>
-              ))}
+              <option value="create">CREATE</option>
+              <option value="update">UPDATE</option>
+              <option value="delete">DELETE</option>
+              <option value="checkin">CHECKIN</option>
+              <option value="checkout">CHECKOUT</option>
+              <option value="login">LOGIN</option>
             </select>
           </div>
 
@@ -136,9 +127,12 @@ export default function AuditPage() {
               className="w-full bg-white border border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
             >
               <option value="">Todas las entidades</option>
-              {uniqueEntities.map(entity => (
-                <option key={entity} value={entity}>{entity.toUpperCase()}</option>
-              ))}
+              <option value="room">ROOM</option>
+              <option value="checkin">CHECKIN</option>
+              <option value="guest">GUEST</option>
+              <option value="user">USER</option>
+              <option value="hotel">HOTEL</option>
+              <option value="payment">PAYMENT</option>
             </select>
           </div>
 
@@ -147,7 +141,7 @@ export default function AuditPage() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Nombre, email, hotel..."
+                placeholder="Acción, entidad, detalles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -179,7 +173,7 @@ export default function AuditPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {paginatedLogs.map((log) => (
+                  {logs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
@@ -227,7 +221,7 @@ export default function AuditPage() {
                       </td>
                     </tr>
                   ))}
-                  {(!loading && paginatedLogs.length === 0) && (
+                  {(!loading && logs.length === 0) && (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                         No hay registros de auditoría disponibles con los filtros actuales.
