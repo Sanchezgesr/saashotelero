@@ -81,7 +81,7 @@ export async function deleteUser(userId: string) {
 
   if (profileError) return { error: profileError.message }
 
-  const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+  const { error: authError } = await admin.auth.admin.deleteUser(userId)
   if (authError) return { error: authError.message }
 
   const { data: { user } } = await supabase.auth.getUser()
