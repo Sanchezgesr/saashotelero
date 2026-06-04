@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Trash2, AlertTriangle } from 'lucide-react'
 import { toggleUserStatus, resetUserPassword, deleteUser } from './actions'
 import { toast } from 'sonner'
 import { UserFormModal } from '@/components/admin/UserFormModal'
@@ -18,11 +18,12 @@ export default function UsersPage() {
   const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [hotels, setHotels] = useState<{ id: string; name: string }[]>([])
+  const [deletingOrphans, setDeletingOrphans] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
     const { data, error } = await createClient()
-      .from('profiles').select('*, hotels (name, city)').order('created_at', { ascending: false })
+      .from('profiles').select('*, hotels (name, city, status)').order('created_at', { ascending: false })
     if (error) toast.error('Error al cargar usuarios')
     else setUsers((data as any) || [])
     setLoading(false)
@@ -35,14 +36,32 @@ export default function UsersPage() {
 
   useEffect(() => { setPage(1) }, [search, roleFilter])
 
+  const orphanedUsers = useMemo(() =>
+    users.filter((u: any) => u.hotels?.status === 'deleted' && u.role !== 'super_admin'),
+  [users])
+
   const filteredUsers = useMemo(() =>
     users.filter((user: any) => {
+      if (user.role === 'super_admin' && roleFilter !== 'super_admin') return false
       const ms = user.full_name.toLowerCase().includes(search.toLowerCase()) || user.email.toLowerCase().includes(search.toLowerCase()) || (user.hotels && user.hotels.name.toLowerCase().includes(search.toLowerCase()))
       return ms && (roleFilter === '' || user.role === roleFilter)
     }), [users, search, roleFilter])
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / ITEMS_PER_PAGE))
   const paginated = filteredUsers.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+
+  const handleDeleteOrphans = async () => {
+    if (!confirm(`¿Eliminar permanentemente ${orphanedUsers.length} usuario(s) cuyos hoteles fueron eliminados? No se puede deshacer.`)) return
+    setDeletingOrphans(true)
+    let success = 0
+    for (const u of orphanedUsers) {
+      const res = await deleteUser(u.id)
+      if (!res.error) success++
+    }
+    toast.success(`${success} de ${orphanedUsers.length} usuarios eliminados`)
+    setDeletingOrphans(false)
+    fetchUsers()
+  }
 
   return (
     <div className="space-y-6">
@@ -53,6 +72,21 @@ export default function UsersPage() {
           <Plus className="w-4 h-4" /> Registrar Usuario
         </button>
       </div>
+
+      {orphanedUsers.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
+            <p className="text-sm text-orange-800">
+              <strong>{orphanedUsers.length} usuario(s)</strong> pertenecen a hoteles eliminados y no pueden acceder.
+            </p>
+          </div>
+          <button onClick={handleDeleteOrphans} disabled={deletingOrphans}
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer shrink-0">
+            <Trash2 className="w-4 h-4" /> {deletingOrphans ? 'Eliminando...' : 'Limpiar usuarios'}
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex flex-wrap gap-4 items-center justify-between">

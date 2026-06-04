@@ -5,7 +5,7 @@ import { Pagination } from '@/components/Pagination'
 
 interface ProfileWithHotel {
   id: string; full_name: string; email: string; role: string; is_active: boolean
-  hotels: { name: string; city: string } | null
+  hotels: { name: string; city: string; status?: string } | null
 }
 
 interface UsersTableProps {
@@ -58,7 +58,11 @@ export function UsersTable({ users, loading, page, totalPages, onPageChange, onR
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {user.hotels ? (
-                  <div className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-gray-400" />{user.hotels.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                    {user.hotels.name}
+                    {user.hotels.status === 'deleted' && <span className="text-[10px] text-red-500 font-medium ml-1">(eliminado)</span>}
+                  </div>
                 ) : <span className="text-gray-400 italic text-xs">Sistema</span>}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
