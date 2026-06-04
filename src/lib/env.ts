@@ -4,6 +4,12 @@ const requiredVars = [
   'SUPABASE_SERVICE_ROLE_KEY',
 ] as const
 
+const optionalVars = [
+  'UPSTASH_REDIS_REST_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
+  'NEXT_PUBLIC_SENTRY_DSN',
+]
+
 const missing = requiredVars.filter(key => !process.env[key])
 
 if (missing.length > 0) {
@@ -19,4 +25,7 @@ export const env = {
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   appName: process.env.NEXT_PUBLIC_APP_NAME || 'HControl',
+  upstashRedisUrl: process.env.UPSTASH_REDIS_REST_URL,
+  upstashRedisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
+  sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 }

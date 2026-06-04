@@ -1,14 +1,17 @@
 import type { NextConfig } from "next";
 
-const supabaseUrl = 'https://lcuojjmgkgzfferoollp.supabase.co'
-
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: {
     serverActions: {
       bodySizeLimit: '5mb',
     },
   },
   async headers() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const supabaseWss = supabaseUrl.replace('https://', 'wss://')
+    const supabaseStorage = `${supabaseUrl}/storage/v1/object/public/`
+
     return [
       {
         source: '/(.*)',
@@ -25,10 +28,10 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `connect-src 'self' ${supabaseUrl} wss://${supabaseUrl.replace('https://', '')}`,
+              `connect-src 'self' ${supabaseUrl} ${supabaseWss}`,
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://lcuojjmgkgzfferoollp.supabase.co/storage/v1/object/public/",
+              `img-src 'self' data: blob: ${supabaseStorage}`,
               "font-src 'self' data:",
               "base-uri 'self'",
               "form-action 'self'",

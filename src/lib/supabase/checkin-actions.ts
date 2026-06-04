@@ -46,7 +46,8 @@ export async function performCheckin(raw: {
   price_per_night: number; total_price: number; nights: number
   payment_method: string; guest_name: string; notes?: string
 }) {
-  if (!rateLimit(`checkin:${raw.hotel_id}`, 30, 60_000)) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
+  const rl = await rateLimit(`checkin:${raw.hotel_id}`, 30, 60_000)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
 
   const { error: validationError, data } = parseAction(checkinSchema, raw)
   if (validationError || !data) throw new Error(validationError || 'Datos inválidos')
@@ -93,7 +94,8 @@ export async function performCheckin(raw: {
 export async function performCheckout(data: {
   checkin_id: string; room_id: string; hotel_id: string; room_number?: string
 }) {
-  if (!rateLimit(`checkout:${data.hotel_id}`, 30, 60_000)) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
+  const rl = await rateLimit(`checkout:${data.hotel_id}`, 30, 60_000)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
 
   const supabase = await createClient()
   await assertHotelAccess(supabase, data.hotel_id)

@@ -43,7 +43,8 @@ export async function performCheckin(data: {
   hotel_id: string; guest_id: string; room_id: string
   price_per_night: number; notes?: string
 }) {
-  if (!rateLimit(`checkin:${data.hotel_id}`, 30, 60_000)) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
+  const rl = await rateLimit(`checkin:${data.hotel_id}`, 30, 60_000)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
 
   const { error: validationError, data: validated } = parseAction(checkinSchema, data)
   if (validationError || !validated) throw new Error(validationError || 'Datos inválidos')

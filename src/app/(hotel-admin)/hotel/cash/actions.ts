@@ -16,7 +16,8 @@ export async function createCashMovement(raw: {
   description: string
   payment_method: 'cash' | 'card' | 'yape' | 'plin'
 }) {
-  if (!rateLimit(`cash:${raw.hotel_id}`, 30, 60_000)) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
+  const rl = await rateLimit(`cash:${raw.hotel_id}`, 30, 60_000)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
 
   const { error: validationError, data } = parseAction(cashMovementSchema, raw)
   if (validationError || !data) throw new Error(validationError || 'Datos inválidos')

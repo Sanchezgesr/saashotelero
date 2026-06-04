@@ -3,13 +3,21 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { syncHotelPlanStatus } from '@/lib/plan-check'
 import { rateLimit } from '@/lib/rate-limit'
+import { setCsrfCookie, CSRF_COOKIE } from '@/lib/csrf'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (!rateLimit(`proxy:${ip}`, 300, 60_000)) {
-    return new NextResponse('Too Many Requests', { status: 429 })
+  const result = await rateLimit(`proxy:${ip}`, 300, 60_000)
+  if (!result.allowed) {
+    return new NextResponse('Too Many Requests', {
+      status: 429,
+      headers: {
+        'Retry-After': '60',
+        'X-RateLimit-Remaining': '0',
+      },
+    })
   }
 
   const supabase = createServerClient(
@@ -107,6 +115,12 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith('/recepcion') && role === 'super_admin') {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+  }
+
+  if (!request.cookies.get(CSRF_COOKIE)) {
+    const csrfCookie = setCsrfCookie()
+    const existing = supabaseResponse.headers.get('Set-Cookie')
+    supabaseResponse.headers.set('Set-Cookie', existing ? [existing, csrfCookie].join(', ') : csrfCookie)
   }
 
   return supabaseResponse

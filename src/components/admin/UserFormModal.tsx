@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
+import { getCsrfHeader } from '@/lib/csrf'
 
 interface UserFormModalProps {
   open: boolean
@@ -21,7 +22,7 @@ export function UserFormModal({ open, onClose, onSaved, hotels }: UserFormModalP
     setCreating(true)
     try {
       const res = await fetch('/api/staff/create', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ full_name: form.full_name, email: form.email, password: form.password, hotelId: form.hotelId, role: form.role }),
       })
       const data = await res.json()

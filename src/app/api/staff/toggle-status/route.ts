@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { validateCsrfToken } from '@/lib/csrf'
 
 export async function POST(request: Request) {
   try {
+    const origin = request.headers.get('origin') || request.headers.get('referer') || ''
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
+    if (origin && !origin.startsWith(appUrl)) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+    }
+
+    if (!(await validateCsrfToken(request))) {
+      return NextResponse.json({ error: 'CSRF token inválido' }, { status: 403 })
+    }
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

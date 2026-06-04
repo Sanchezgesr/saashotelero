@@ -541,9 +541,11 @@ CREATE INDEX IF NOT EXISTS idx_rooms_hotel_status
   ON rooms(hotel_id, status);
 
 -- Búsqueda de huéspedes por nombre o DNI (soporte para ILIKE)
--- Requiere: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Requiere ejecutar manualmente: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Luego descomentar y ejecutar los índices:
 -- CREATE INDEX IF NOT EXISTS idx_guests_full_name_trgm ON guests USING gin (full_name gin_trgm_ops);
 -- CREATE INDEX IF NOT EXISTS idx_guests_dni_trgm ON guests USING gin (dni gin_trgm_ops);
+-- Los índices se aplican en la migración 001_enable_pg_trgm.sql
 
 -- 12. RPC: Cierre de caja transaccional (atomic: insert closure + tag movements)
 CREATE OR REPLACE FUNCTION perform_cash_closure(
