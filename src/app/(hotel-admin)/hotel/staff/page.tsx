@@ -5,6 +5,7 @@ import { useUser } from '@/hooks/useUser'
 import { Plus, UserCog, Ban, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { getStaff, toggleStaffStatus } from './actions'
+import { getCsrfHeader } from '@/lib/csrf'
 import type { Profile } from '@/types'
 
 export default function StaffPage() {
@@ -107,7 +108,7 @@ export default function StaffPage() {
                 <p className="text-xs text-muted-foreground">{s.email}</p>
                 <p className="text-xs text-muted-foreground capitalize">Rol: {s.role === 'receptionist' ? 'Recepcionista' : s.role}</p>
                 <button onClick={() => handleToggle(s)} disabled={toggling === s.id}
-                  className={`w-full flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[40px] ${
                     s.is_active
                       ? 'bg-red-50 text-red-600 border border-red-200'
                       : 'bg-green-50 text-green-600 border border-green-200'
@@ -133,7 +134,7 @@ function StaffForm({ hotelId, onCreated }: { hotelId: string; onCreated: () => v
     try {
       const res = await fetch('/api/staff/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ ...form, hotelId }),
       })
       const data = await res.json()

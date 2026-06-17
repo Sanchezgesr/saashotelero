@@ -10,9 +10,9 @@ export function SessionWatcher() {
   useEffect(() => {
     const supabase = createClient()
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) router.replace('/login')
-    })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) router.replace('/login')
+    }).catch(() => router.replace('/login'))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') router.replace('/login')

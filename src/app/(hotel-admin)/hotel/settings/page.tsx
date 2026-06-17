@@ -9,7 +9,7 @@ import { PLANS, type PlanId } from '@/lib/utils/plans'
 import { THEMES, type ThemeId } from '@/lib/themes'
 import { useTheme } from '@/components/ThemeProvider'
 import type { Hotel } from '@/types'
-import { uploadLogo } from './actions'
+import { uploadLogo, getRoomTypes, addRoomType, removeRoomType } from './actions'
 import { fmtDate } from '@/lib/utils/dates'
 
 export default function SettingsPage() {
@@ -19,11 +19,25 @@ export default function SettingsPage() {
   const [hotel, setHotel] = useState<Hotel | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [roomTypes, setRoomTypes] = useState<{ name: string; label: string }[]>([])
+  const [toggling, setToggling] = useState<string | null>(null)
+
+  const ALL_TYPES = [
+    { name: 'simple', label: 'Simple' },
+    { name: 'doble', label: 'Doble' },
+    { name: 'triple', label: 'Triple' },
+    { name: 'matrimonial', label: 'Matrimonial' },
+    { name: 'familiar', label: 'Familiar' },
+    { name: 'suite', label: 'Suite' },
+  ]
 
   useEffect(() => {
     if (!profile?.hotel_id) return
     supabase.from('hotels').select('*').eq('id', profile.hotel_id).single().then(({ data }) => {
       if (data) setHotel(data)
+    })
+    getRoomTypes(profile.hotel_id).then((res) => {
+      if (res.data) setRoomTypes(res.data)
     })
   }, [profile?.hotel_id])
 
@@ -126,6 +140,39 @@ export default function SettingsPage() {
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50">
             <Upload size={16} /> {uploading ? 'Subiendo...' : 'Agregar logo'}
           </button>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-lg font-semibold mb-4">Tipos de Habitación</h2>
+        <p className="text-sm text-muted-foreground mb-4">Selecciona los tipos de habitación que ofrece tu hotel. Solo estos aparecerán al registrar una habitación.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {ALL_TYPES.map((t) => {
+            const enabled = roomTypes.some(rt => rt.name === t.name)
+            return (
+              <label key={t.name} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                enabled ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/30'
+              }`}>
+                <input type="checkbox" checked={enabled} disabled={toggling === t.name}
+                  onChange={async () => {
+                    if (!profile?.hotel_id) return
+                    setToggling(t.name)
+                    if (enabled) {
+                      const res = await removeRoomType(profile.hotel_id, t.name)
+                      if (res.error) { toast.error(res.error); setToggling(null); return }
+                      setRoomTypes(prev => prev.filter(rt => rt.name !== t.name))
+                    } else {
+                      const res = await addRoomType(profile.hotel_id, t.name, t.label)
+                      if (res.error) { toast.error(res.error); setToggling(null); return }
+                      setRoomTypes(prev => [...prev, { name: t.name, label: t.label }])
+                    }
+                    setToggling(null)
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" />
+                <span className={`text-sm font-medium ${enabled ? 'text-foreground' : 'text-muted-foreground'}`}>{t.label}</span>
+              </label>
+            )
+          })}
         </div>
       </div>
 

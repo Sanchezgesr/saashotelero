@@ -1,24 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
-import { syncHotelPlanStatus } from '@/lib/plan-check'
-import { rateLimit } from '@/lib/rate-limit'
 import { setCsrfCookie, CSRF_COOKIE } from '@/lib/csrf'
+
+async function safeSignOut(supabase: ReturnType<typeof createServerClient>) {
+  try { await supabase.auth.signOut() } catch { /* ignore */ }
+}
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
-
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const result = await rateLimit(`proxy:${ip}`, 300, 60_000)
-  if (!result.allowed) {
-    return new NextResponse('Too Many Requests', {
-      status: 429,
-      headers: {
-        'Retry-After': '60',
-        'X-RateLimit-Remaining': '0',
-      },
-    })
-  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,9 +16,7 @@ export async function proxy(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -39,82 +26,55 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
-
   const publicRoutes = ['/login', '/auth/callback']
-  if (publicRoutes.includes(pathname)) {
-    return supabaseResponse
+  if (publicRoutes.includes(pathname)) return supabaseResponse
+
+  let session
+  try {
+    const res = await supabase.auth.getSession()
+    session = res.data.session
+  } catch {
+    session = null
+  }
+  if (!session) {
+    const resp = NextResponse.redirect(new URL('/login', request.url))
+    resp.cookies.delete('sb-lcuojjmgkgzfferoollp-auth-token')
+    resp.cookies.delete('sb-lcuojjmgkgzfferoollp-auth-token-code-verifier')
+    return resp
   }
 
-  if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  const user = session.user
 
-  const rememberMe = request.cookies.get('_remember_me')?.value
-  const sessionMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 86400 // 30 days o 1 day
+  const profileReq = await supabase
+    .from('profiles').select('role, is_active, hotel_id').eq('id', user.id).single()
+  const profile = profileReq.data
 
-  const sessionStart = request.cookies.get('_session_start')?.value
-  if (!sessionStart) {
-    supabaseResponse.cookies.set('_session_start', String(Date.now()), { httpOnly: true, secure: true, sameSite: 'lax', maxAge: sessionMaxAge })
-  } else if (Date.now() - Number(sessionStart) > sessionMaxAge * 1000) {
-    await supabase.auth.signOut()
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
-
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('id, role, is_active, hotel_id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!profile) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (!profile.is_active) {
-    await supabase.auth.signOut()
+  if (!profile || !profile.is_active) {
+    await safeSignOut(supabase)
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   if (profile.hotel_id) {
-    const { data: hotel } = await admin
-      .from('hotels')
-      .select('status, plan_expires_at')
-      .eq('id', profile.hotel_id)
-      .maybeSingle()
-
-    if (hotel?.status === 'suspended') {
-      await supabase.auth.signOut()
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    if (hotel?.plan_expires_at && new Date(hotel.plan_expires_at) < new Date()) {
-      await syncHotelPlanStatus(profile.hotel_id)
-      await supabase.auth.signOut()
+    const { data: hotel } = await supabase
+      .from('hotels').select('status').eq('id', profile.hotel_id).single()
+    if (!hotel || hotel.status === 'suspended') {
+      await safeSignOut(supabase)
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  const role = profile.role
-  const isSuperAdminRoute = pathname.startsWith('/admin')
-
-  if (isSuperAdminRoute && role !== 'super_admin') {
-    return NextResponse.redirect(new URL('/hotel/dashboard', request.url))
+  supabaseResponse.cookies.set('_user_role', profile.role, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 })
+  if (profile.hotel_id) {
+    supabaseResponse.cookies.set('_user_hotel_id', profile.hotel_id, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 })
   }
 
-  if (pathname.startsWith('/hotel') && role === 'super_admin') {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-  }
-
-  if (pathname.startsWith('/recepcion') && role === 'super_admin') {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+  if (profile.role === 'super_admin') {
+    if (pathname.startsWith('/hotel') || pathname.startsWith('/recepcion'))
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+  } else {
+    if (pathname.startsWith('/admin'))
+      return NextResponse.redirect(new URL('/hotel/dashboard', request.url))
   }
 
   if (!request.cookies.get(CSRF_COOKIE)) {

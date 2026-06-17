@@ -42,12 +42,13 @@ export default function CheckinPage() {
       <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <h2 className="text-lg font-semibold mb-4">Nuevo Check-in</h2>
 
-        <div className="flex items-center gap-2 mb-6 text-sm">
-          {['Buscar cliente', 'Registrar cliente', 'Seleccionar habitación', 'Confirmar'].map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= i + 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{i + 1}</span>
-              <span className={step >= i + 1 ? 'text-foreground' : 'text-muted-foreground'}>{s}</span>
-              {i < 3 && <div className="w-8 h-px bg-border" />}
+        <div className="flex items-center gap-1 mb-6 text-sm overflow-x-auto scrollbar-hide">
+          {['Buscar', 'Registrar', 'Hab.', 'Confirmar'].map((s, i) => (
+            <div key={s} className="flex items-center gap-1 shrink-0">
+              <span className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm font-medium ${step >= i + 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{i + 1}</span>
+              <span className={`text-xs md:text-sm ${step >= i + 1 ? 'text-foreground' : 'text-muted-foreground'} hidden md:inline`}>{['Buscar cliente', 'Registrar cliente', 'Seleccionar habitación', 'Confirmar'][i]}</span>
+              <span className={`text-xs md:hidden ${step >= i + 1 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{s}</span>
+              {i < 3 && <div className="w-4 md:w-8 h-px bg-border shrink-0" />}
             </div>
           ))}
         </div>
@@ -77,7 +78,7 @@ export default function CheckinPage() {
           <div>
             <p className="text-sm mb-4">Cliente: <strong>{guest?.full_name}</strong> ({guest?.dni})</p>
             <label className="block text-sm font-medium mb-2">Seleccionar habitación disponible</label>
-            <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
               {rooms.map((r) => (
                 <button key={r.id} onClick={() => { setSelectedRoom(r); setPricePerNight(r.price_per_night) }}
                   className={`p-3 rounded-lg border text-left text-sm transition-colors ${selectedRoom?.id === r.id ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'}`}>

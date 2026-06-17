@@ -7,12 +7,12 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_today       DATE := (CURRENT_DATE AT TIME ZONE 'America/Lima');
+  v_today       DATE := (NOW() AT TIME ZONE 'America/Lima')::DATE;
   v_yesterday   DATE := v_today - 1;
-  v_today_start TIMESTAMPTZ := v_today::TIMESTAMPTZ AT TIME ZONE 'America/Lima';
-  v_today_end   TIMESTAMPTZ := (v_today + 1)::TIMESTAMPTZ AT TIME ZONE 'America/Lima';
-  v_y_start     TIMESTAMPTZ := v_yesterday::TIMESTAMPTZ AT TIME ZONE 'America/Lima';
-  v_y_end       TIMESTAMPTZ := v_today::TIMESTAMPTZ AT TIME ZONE 'America/Lima';
+  v_today_start TIMESTAMPTZ := v_today::TIMESTAMPTZ + INTERVAL '5 hours';
+  v_today_end   TIMESTAMPTZ := v_today::TIMESTAMPTZ + INTERVAL '1 day 5 hours';
+  v_y_start     TIMESTAMPTZ := v_yesterday::TIMESTAMPTZ + INTERVAL '5 hours';
+  v_y_end       TIMESTAMPTZ := v_today::TIMESTAMPTZ + INTERVAL '5 hours';
   v_result      JSON;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND hotel_id = p_hotel_id)
@@ -85,14 +85,14 @@ BEGIN
     LEFT JOIN LATERAL (
       SELECT SUM(amount) AS total FROM cash_movements
       WHERE hotel_id = p_hotel_id AND type = 'income'
-        AND created_at >= d::TIMESTAMPTZ AT TIME ZONE 'America/Lima'
-        AND created_at < (d + 1)::TIMESTAMPTZ AT TIME ZONE 'America/Lima'
+        AND created_at >= ((d::DATE)::TIMESTAMPTZ + INTERVAL '5 hours')
+        AND created_at < ((d::DATE)::TIMESTAMPTZ + INTERVAL '1 day 5 hours')
     ) i ON true
     LEFT JOIN LATERAL (
       SELECT SUM(amount) AS total FROM cash_movements
       WHERE hotel_id = p_hotel_id AND type = 'expense'
-        AND created_at >= d::TIMESTAMPTZ AT TIME ZONE 'America/Lima'
-        AND created_at < (d + 1)::TIMESTAMPTZ AT TIME ZONE 'America/Lima'
+        AND created_at >= ((d::DATE)::TIMESTAMPTZ + INTERVAL '5 hours')
+        AND created_at < ((d::DATE)::TIMESTAMPTZ + INTERVAL '1 day 5 hours')
     ) e ON true
   )
   SELECT json_build_object(

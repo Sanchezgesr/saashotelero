@@ -123,8 +123,15 @@ CREATE TABLE IF NOT EXISTS cash_closures (
 -- AUDIT_LOG: Auditoría del Sistema (tabla única, usar esta — no audit_logs)
 
 -- 4b. Migración: cash movements → closure_id tracking, closures → closed_by_role
-ALTER TABLE cash_movements ADD COLUMN IF NOT EXISTS closure_id UUID REFERENCES cash_closures(id);
-ALTER TABLE cash_closures ADD COLUMN IF NOT EXISTS closed_by_role TEXT DEFAULT 'hotel_admin';
+-- CSRF_TOKENS: Tokens CSRF (migración 002)
+CREATE TABLE IF NOT EXISTS csrf_tokens (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  token      TEXT NOT NULL,
+  user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   hotel_id   UUID REFERENCES hotels(id) ON DELETE SET NULL,
@@ -135,6 +142,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
   details    JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE cash_movements ADD COLUMN IF NOT EXISTS closure_id UUID REFERENCES cash_closures(id);
+ALTER TABLE cash_closures ADD COLUMN IF NOT EXISTS closed_by_role TEXT DEFAULT 'hotel_admin';
+ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
 
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 
@@ -286,7 +297,7 @@ CREATE INDEX IF NOT EXISTS idx_rooms_status          ON rooms(hotel_id, status);
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rooms_type_check') THEN
-    ALTER TABLE rooms ADD CONSTRAINT rooms_type_check CHECK (type IN ('simple','doble','triple','matrimonial','familiar')) NOT VALID;
+    ALTER TABLE rooms ADD CONSTRAINT rooms_type_check CHECK (type IN ('simple','doble','triple','matrimonial','familiar','suite')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rooms_status_check') THEN
     ALTER TABLE rooms ADD CONSTRAINT rooms_status_check CHECK (status IN ('available','occupied','cleaning','maintenance')) NOT VALID;
@@ -327,9 +338,9 @@ BEGIN
 END;
 $$;
 
--- 5b. Migración: corregir tipos inválidos en rooms (ej: 'suite' → 'simple')
+-- 5b. Migración: corregir tipos inválidos en rooms
 UPDATE rooms SET type = 'simple'
-WHERE type NOT IN ('simple','doble','triple','matrimonial','familiar');
+WHERE type NOT IN ('simple','doble','triple','matrimonial','familiar','suite');
 
 -- Validar rooms_type_check ahora que los datos están limpios
 ALTER TABLE rooms VALIDATE CONSTRAINT rooms_type_check;
@@ -450,9 +461,9 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Habitación no disponible');
   END IF;
 
-  -- Normalizar tipo de habitación inválido (ej: 'suite') antes del UPDATE
+  -- Normalizar tipo de habitación inválido antes del UPDATE
   UPDATE rooms SET type = 'simple'
-  WHERE id = p_room_id AND type NOT IN ('simple','doble','triple','matrimonial','familiar');
+  WHERE id = p_room_id AND type NOT IN ('simple','doble','triple','matrimonial','familiar','suite');
 
   INSERT INTO checkins (hotel_id, guest_id, room_id, price_per_night, total_price, payment_method, nights, notes, created_by, payment_status, status)
   VALUES (p_hotel_id, p_guest_id, p_room_id, COALESCE(p_price_per_night, p_price), p_price, p_payment_method, p_nights, p_notes, v_user_id, 'paid', 'active')
@@ -499,7 +510,7 @@ BEGIN
 
   -- Normalizar tipo de habitación inválido antes del UPDATE (evita que el trigger falle)
   UPDATE rooms SET type = 'simple'
-  WHERE id = v_room_id AND type NOT IN ('simple','doble','triple','matrimonial','familiar');
+  WHERE id = v_room_id AND type NOT IN ('simple','doble','triple','matrimonial','familiar','suite');
 
   -- Actualizar checkin (dispara trigger_room_status → UPDATE rooms)
   UPDATE checkins
@@ -607,3 +618,28 @@ $$;
 -- Índice para búsqueda por closure_id (movimientos abiertos / por cierre)
 CREATE INDEX IF NOT EXISTS idx_cash_movements_closure
   ON cash_movements(hotel_id, closure_id);
+
+-- ============================================
+-- 13. HOTEL_ROOM_TYPES (migración 005)
+-- ============================================
+CREATE TABLE IF NOT EXISTS hotel_room_types (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id   UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  label      TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(hotel_id, name)
+);
+
+INSERT INTO hotel_room_types (hotel_id, name, label)
+SELECT h.id, v.name, v.label
+FROM hotels h
+CROSS JOIN (
+  VALUES ('simple', 'Simple'), ('doble', 'Doble'), ('triple', 'Triple'),
+         ('matrimonial', 'Matrimonial'), ('familiar', 'Familiar'), ('suite', 'Suite')
+) AS v(name, label)
+ON CONFLICT (hotel_id, name) DO NOTHING;
+
+-- ============================================
+-- End of schema
+-- ============================================

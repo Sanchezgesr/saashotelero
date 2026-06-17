@@ -15,7 +15,19 @@ import { CheckinModal } from '@/components/rooms/CheckinModal'
 import { CheckoutModal } from '@/components/rooms/CheckoutModal'
 
 const statusColors: Record<string, string> = {
-  available: 'bg-green-500', occupied: 'bg-red-500', cleaning: 'bg-yellow-500', maintenance: 'bg-gray-500',
+  available: 'bg-green-500', occupied: 'bg-red-500', cleaning: 'bg-blue-500', maintenance: 'bg-yellow-500',
+}
+
+const statusBgColors: Record<string, string> = {
+  available: 'bg-green-50', occupied: 'bg-red-50', cleaning: 'bg-blue-50', maintenance: 'bg-yellow-50',
+}
+
+const statusBorderColors: Record<string, string> = {
+  available: 'border-green-300', occupied: 'border-red-300', cleaning: 'border-blue-300', maintenance: 'border-yellow-300',
+}
+
+const statusBorderHover: Record<string, string> = {
+  available: 'hover:border-green-500', occupied: 'hover:border-red-500', cleaning: 'hover:border-blue-500', maintenance: 'hover:border-yellow-500',
 }
 
 const statusLabels: Record<string, string> = {
@@ -55,7 +67,7 @@ export default function RoomsPage() {
     setLoading(true)
     try {
       const { data: dbRooms, error } = await createClient()
-        .from('rooms').select('*').eq('hotel_id', profile.hotel_id).order('number')
+        .from('rooms').select('*').eq('hotel_id', profile.hotel_id).order('floor').order('number')
       if (error) throw error
       setRooms((dbRooms || []) as any)
       setLoading(false)
@@ -110,9 +122,19 @@ export default function RoomsPage() {
       </div>
 
       {showForm && (
-        <RoomForm hotelId={profile?.hotel_id!} editingRoom={editingRoom}
-          onCreated={() => { setShowForm(false); setEditingRoom(null); fetchRooms() }}
-          onCancel={() => { setShowForm(false); setEditingRoom(null) }} />
+        editingRoom ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setShowForm(false); setEditingRoom(null) }}>
+            <div className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <RoomForm hotelId={profile?.hotel_id!} editingRoom={editingRoom}
+                onCreated={() => { setShowForm(false); setEditingRoom(null); fetchRooms() }}
+                onCancel={() => { setShowForm(false); setEditingRoom(null) }} />
+            </div>
+          </div>
+        ) : (
+          <RoomForm hotelId={profile?.hotel_id!} editingRoom={editingRoom}
+            onCreated={() => { setShowForm(false); setEditingRoom(null); fetchRooms() }}
+            onCancel={() => { setShowForm(false); setEditingRoom(null) }} />
+        )
       )}
 
       {loading ? (
@@ -140,12 +162,12 @@ export default function RoomsPage() {
                   selectedFilter === s
                     ? s === 'available' ? 'bg-green-600 text-white border-green-600'
                     : s === 'occupied' ? 'bg-red-600 text-white border-red-600'
-                    : s === 'cleaning' ? 'bg-yellow-600 text-white border-yellow-600'
-                    : 'bg-gray-600 text-white border-gray-600'
+                    : s === 'cleaning' ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-yellow-600 text-white border-yellow-600'
                     : 'bg-card text-muted-foreground border-border'
                 }`}>
                 <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
-                  s === 'available' ? 'bg-green-500' : s === 'occupied' ? 'bg-red-500' : s === 'cleaning' ? 'bg-yellow-500' : 'bg-gray-500'
+                  s === 'available' ? 'bg-green-500' : s === 'occupied' ? 'bg-red-500' : s === 'cleaning' ? 'bg-blue-500' : 'bg-yellow-500'
                 }`} />
                 {statusLabels[s]}
               </button>
@@ -161,18 +183,21 @@ export default function RoomsPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                   {filteredRooms.filter(r => r.floor === floor).map((room) => (
                     <div key={room.id} onClick={() => handleRoomClick(room)}
-                      className={`bg-card rounded-xl shadow-sm border p-5 flex flex-col justify-between hover:shadow-md transition-shadow group relative cursor-pointer ${
-                        room.status === 'available' ? 'border-green-200 hover:border-green-400' :
-                        room.status === 'occupied' ? 'border-red-200 hover:border-red-400' : 'border-border'
+                      className={`rounded-xl shadow-sm border p-5 flex flex-col justify-between hover:shadow-md transition-shadow group relative cursor-pointer ${
+                        statusBgColors[room.status] || 'bg-card'
+                      } ${
+                        statusBorderColors[room.status] || 'border-border'
+                      } ${
+                        statusBorderHover[room.status] || 'hover:border-border'
                       }`}>
-                      <div className="absolute top-4 right-4 flex gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute top-4 right-4 flex gap-1.5 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => { setEditingRoom(room); setShowForm(true) }} title="Editar"
-                          className="p-1 bg-primary/10 text-primary rounded border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
-                          <Pencil size={12} />
+                          className="p-1.5 bg-primary/10 text-primary rounded border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
+                          <Pencil size={14} />
                         </button>
                         <button onClick={() => handleDelete(room.id)} title="Eliminar"
-                          className="p-1 bg-red-50 text-red-600 rounded border border-red-100 hover:bg-red-100 transition-colors cursor-pointer">
-                          <Trash2 size={12} />
+                          className="p-1.5 bg-red-50 text-red-600 rounded border border-red-100 hover:bg-red-100 transition-colors cursor-pointer">
+                          <Trash2 size={14} />
                         </button>
                       </div>
                       <div>
@@ -195,12 +220,12 @@ export default function RoomsPage() {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                           room.status === 'available' ? 'bg-green-100 text-green-700' :
                           room.status === 'occupied' ? 'bg-red-100 text-red-700' :
-                          room.status === 'cleaning' ? 'bg-yellow-100 text-yellow-700' : 'bg-muted text-muted-foreground'
+                          room.status === 'cleaning' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
                         }`}>{statusLabels[room.status]}</span>
                       </div>
                       {room.status === 'available' && <p className="text-xs text-center text-green-600 font-medium mt-2">Click para check-in</p>}
                       {room.status === 'occupied' && <p className="text-xs text-center text-red-600 font-medium mt-2">Click para check-out</p>}
-                      {room.status === 'cleaning' && <p className="text-xs text-center text-yellow-600 font-medium mt-2">Click para marcar disponible</p>}
+                      {room.status === 'cleaning' && <p className="text-xs text-center text-blue-600 font-medium mt-2">Click para marcar disponible</p>}
                     </div>
                   ))}
                 </div>

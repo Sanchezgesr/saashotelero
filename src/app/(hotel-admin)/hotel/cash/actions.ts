@@ -25,20 +25,23 @@ export async function createCashMovement(raw: {
   const supabase = await createClient()
   await assertHotelAccess(supabase, data.hotel_id)
 
-  const { error: dbError } = await supabase.from('cash_movements').insert(data)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { error: dbError } = await supabase.from('cash_movements').insert({
+    ...data,
+    created_by: user.id,
+  })
   if (dbError) throw new Error('Error al registrar movimiento')
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (user) {
-    await logAction({
-      supabase,
-      hotelId: data.hotel_id,
-      userId: user.id,
-      action: 'payment.received',
-      entity: 'cash_movements',
-      details: { type: data.type, amount: data.amount, category: data.category },
-    })
-  }
+  await logAction({
+    supabase,
+    hotelId: data.hotel_id,
+    userId: user.id,
+    action: 'payment.received',
+    entity: 'cash_movements',
+    details: { type: data.type, amount: data.amount, category: data.category },
+  })
 
   revalidatePath('/hotel/cash')
   revalidatePath('/recepcion/cash')
@@ -65,7 +68,7 @@ export async function performCashClosure(hotelId: string, notes?: string) {
 
   const { data: lastClosures } = await supabase
     .from('cash_closures').select('closed_at')
-    .eq('hotel_id', hotelId).eq('date', today)
+    .eq('hotel_id', hotelId)
     .order('closed_at', { ascending: false }).limit(1)
 
   const startFilter = lastClosures?.[0]?.closed_at ?? todayStart

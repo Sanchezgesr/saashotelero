@@ -5,19 +5,22 @@ import { createClient } from '@/lib/supabase/client'
 import { XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { createReservation } from '@/app/(hotel-admin)/hotel/reservations/actions'
-
-const ROOM_TYPES = ['simple', 'doble', 'triple', 'matrimonial', 'familiar']
+import { getRoomTypes } from '@/app/(hotel-admin)/hotel/settings/actions'
 
 export function ReservationForm({ hotelId, onCreated, onCancel }: {
   hotelId: string; onCreated: () => void; onCancel: () => void
 }) {
   const [guests, setGuests] = useState<{ id: string; full_name: string }[]>([])
+  const [roomTypes, setRoomTypes] = useState<{ name: string; label: string }[]>([])
   const [form, setForm] = useState({ room_type: '', guest_id: '', check_in_date: '', check_out_date: '', notes: '' })
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.from('guests').select('id, full_name').eq('hotel_id', hotelId).then(({ data }) => setGuests(data ?? []))
+    getRoomTypes(hotelId).then((res) => {
+      if (res.data) setRoomTypes(res.data)
+    })
   }, [hotelId])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +65,7 @@ export function ReservationForm({ hotelId, onCreated, onCancel }: {
           <select required value={form.room_type} onChange={(e) => setForm({ ...form, room_type: e.target.value })}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
             <option value="">Seleccionar...</option>
-            {ROOM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            {roomTypes.map((rt) => <option key={rt.name} value={rt.name}>{rt.label}</option>)}
           </select>
         </div>
         <div>

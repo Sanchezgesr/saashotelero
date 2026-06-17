@@ -6,8 +6,13 @@ import { validateCsrfToken } from '@/lib/csrf'
 export async function POST(request: Request) {
   try {
     const origin = request.headers.get('origin') || request.headers.get('referer') || ''
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-    if (origin && !origin.startsWith(appUrl)) {
+    const allowedOrigins = [
+      process.env.NEXT_PUBLIC_APP_URL,
+      'https://hcontrol.org.pe',
+      'https://prueba-iota-two.vercel.app',
+      'http://localhost:3000',
+    ].filter(Boolean) as string[]
+    if (origin && !allowedOrigins.some(o => origin.startsWith(o))) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 

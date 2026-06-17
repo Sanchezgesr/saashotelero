@@ -25,26 +25,28 @@ export default function CashPage() {
     if (!profile?.hotel_id) return
     setLoading(true)
     const supabase = createClient()
-    const today = localDate()
     const nd = new Date()
     nd.setDate(nd.getDate() + 1)
     const nextDay = localDate(nd)
-    const todayStart = `${today}T00:00:00${tzOffset()}`
     const todayEnd = `${nextDay}T00:00:00${tzOffset()}`
 
     const { data: lastClosures } = await supabase
       .from('cash_closures').select('closed_at')
-      .eq('hotel_id', profile.hotel_id).eq('date', today)
+      .eq('hotel_id', profile.hotel_id)
       .order('closed_at', { ascending: false }).limit(1)
 
-    const startFilter = lastClosures?.[0]?.closed_at ?? todayStart
+    const lastClosureAt = lastClosures?.[0]?.closed_at
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('cash_movements').select('*')
       .eq('hotel_id', profile.hotel_id)
-      .gte('created_at', startFilter)
       .lt('created_at', todayEnd)
-      .order('created_at', { ascending: false })
+
+    if (lastClosureAt) {
+      query = query.gte('created_at', lastClosureAt)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
     
     if (error) {
       toast.error('Error al cargar movimientos de caja')
@@ -138,7 +140,7 @@ export default function CashPage() {
       )}
 
       <div className="space-y-3">
-        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Movimientos Recientes (Hoy)</h3>
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Movimientos Recientes</h3>
         {loading ? (
           <div className="text-center py-6 text-gray-500 text-xs">Cargando movimientos...</div>
         ) : (
@@ -148,9 +150,9 @@ export default function CashPage() {
                 <div>
                   <p className="text-sm font-bold text-gray-800 capitalize">{m.category}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{m.description || 'Sin descripción'}</p>
-                  <p className="text-[10px] text-gray-400 mt-1 capitalize font-medium">
-                    {m.payment_method} · {fmtTime(m.created_at)}
-                  </p>
+                    <p className="text-[10px] text-gray-400 mt-1 capitalize font-medium">
+                      {m.payment_method} · {fmtDate(m.created_at)} {fmtTime(m.created_at)}
+                    </p>
                 </div>
                 <span className={`font-bold text-sm ${m.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                   {m.type === 'income' ? '+' : '-'} S/. {Number(m.amount).toFixed(2)}

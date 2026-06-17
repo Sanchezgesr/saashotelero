@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { normalizeRoomType } from '@/lib/supabase/checkin-actions'
+import { getRoomTypes } from '@/app/(hotel-admin)/hotel/settings/actions'
 import type { Room } from '@/types'
 
 export function RoomForm({
@@ -12,10 +13,17 @@ export function RoomForm({
 }: {
   hotelId: string; editingRoom: Room | null; onCreated: () => void; onCancel: () => void
 }) {
+  const [roomTypes, setRoomTypes] = useState<{ name: string; label: string }[]>([])
   const [form, setForm] = useState({
     number: '', type: 'simple', capacity: 2, price_per_night: '', floor: 1, description: '', status: 'available',
   })
   const [priceWarning, setPriceWarning] = useState('')
+
+  useEffect(() => {
+    getRoomTypes(hotelId).then((res) => {
+      if (res.data && res.data.length > 0) setRoomTypes(res.data)
+    })
+  }, [hotelId])
 
   useEffect(() => {
     if (editingRoom) {
@@ -70,8 +78,8 @@ export function RoomForm({
           <label className="block text-xs font-semibold text-muted-foreground mb-1">Tipo *</label>
           <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
             className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-card text-foreground">
-            <option value="simple">Simple</option><option value="doble">Doble</option>
-            <option value="triple">Triple</option><option value="matrimonial">Matrimonial</option><option value="familiar">Familiar</option>
+            {roomTypes.length === 0 && <option value="simple">Simple</option>}
+            {roomTypes.map((rt) => <option key={rt.name} value={rt.name}>{rt.label}</option>)}
           </select>
         </div>
         <div>
@@ -87,7 +95,7 @@ export function RoomForm({
         </div>
         <div>
           <label className="block text-xs font-semibold text-muted-foreground mb-1">Piso *</label>
-          <input type="number" required min={1} value={form.floor} onChange={(e) => setForm({ ...form, floor: +e.target.value })}
+          <input type="number" required min={1} value={form.floor || ''} onChange={(e) => setForm({ ...form, floor: e.target.value === '' ? 1 : +e.target.value })}
             className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-card text-foreground" />
         </div>
         <div>

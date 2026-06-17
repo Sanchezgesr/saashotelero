@@ -41,3 +41,38 @@ export async function uploadLogo(hotelId: string, formData: FormData) {
   revalidatePath('/hotel/settings')
   return { success: true, url: cacheBustedUrl }
 }
+
+export async function getRoomTypes(hotelId: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+  const { data, error } = await supabase.from('hotel_room_types').select('name, label').eq('hotel_id', hotelId).order('name')
+  if (error) return { error: error.message }
+  return { data: data ?? [] }
+}
+
+export async function addRoomType(hotelId: string, name: string, label: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+  const { error } = await supabase.from('hotel_room_types').insert({ hotel_id: hotelId, name, label })
+  if (error && !error.message?.includes('duplicate key')) return { error: error.message }
+  revalidatePath('/hotel/settings')
+  return { success: true }
+}
+
+export async function removeRoomType(hotelId: string, name: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+  const { error } = await supabase.from('hotel_room_types').delete().eq('hotel_id', hotelId).eq('name', name)
+  if (error) return { error: error.message }
+  revalidatePath('/hotel/settings')
+  return { success: true }
+}

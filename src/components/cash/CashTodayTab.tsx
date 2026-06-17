@@ -36,17 +36,21 @@ export function CashTodayTab() {
 
     const { data: lastClosures } = await supabase
       .from('cash_closures').select('closed_at')
-      .eq('hotel_id', profile.hotel_id).eq('date', today)
+      .eq('hotel_id', profile.hotel_id)
       .order('closed_at', { ascending: false }).limit(1)
 
-    const startFilter = lastClosures?.[0]?.closed_at ?? todayStart
+    const lastClosureAt = lastClosures?.[0]?.closed_at
 
-    const { data: m } = await supabase
+    let query = supabase
       .from('cash_movements').select('*, profiles(full_name)')
       .eq('hotel_id', profile.hotel_id)
-      .gte('created_at', startFilter)
       .lt('created_at', todayEnd)
-      .order('created_at', { ascending: false })
+
+    if (lastClosureAt) {
+      query = query.gte('created_at', lastClosureAt)
+    }
+
+    const { data: m } = await query.order('created_at', { ascending: false })
     const list = (m ?? []) as CashMovement[]
     setMovements(list)
     setSummary(calcSummary(list))

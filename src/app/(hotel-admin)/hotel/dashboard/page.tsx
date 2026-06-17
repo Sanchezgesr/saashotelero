@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { BedDouble, LogIn, LogOut, DollarSign, TrendingUp, Users } from 'lucide-react'
+import { toast } from 'sonner'
 import { fmtDate } from '@/lib/utils/dates'
 import KpiCard from '@/components/charts/KpiCard'
 import IncomeChart from '@/components/charts/IncomeChart'
@@ -33,13 +34,20 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
 
   const loadDashboard = async () => {
-    if (!profile?.hotel_id) return
+    if (!profile?.hotel_id) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     const supabase = createClient()
     const { data: result, error } = await supabase.rpc('get_dashboard_data', {
       p_hotel_id: profile.hotel_id,
     })
-    if (!error && result) {
+    if (error) {
+      toast.error('Error al cargar dashboard: ' + error.message)
+    } else if (result && typeof result === 'object' && 'error' in result) {
+      toast.error((result as any).error)
+    } else if (result) {
       setData(result as unknown as DashboardData)
     }
     setLoading(false)
@@ -144,11 +152,11 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-foreground">Mapa de Habitaciones</h2>
-              <div className="flex gap-3 text-xs font-semibold">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-green-500" /> Libre</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-red-500" /> Ocupada</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-yellow-500" /> Limpieza</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-500" /> Mant.</span>
+              <div className="flex gap-2 md:gap-3 text-[11px] md:text-xs font-semibold">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500" /> Libre</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500" /> Ocupada</span>
+                <span className="hidden sm:flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500" /> Limpieza</span>
+                <span className="hidden sm:flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-500" /> Mant.</span>
               </div>
             </div>
             {rooms.length === 0 ? (
@@ -158,7 +166,7 @@ export default function DashboardPage() {
                 {Object.entries(roomsByFloor).sort(([a], [b]) => Number(a) - Number(b)).map(([floor, floorRooms]) => (
                   <div key={floor} className="border-b border-border last:border-0 pb-4 last:pb-0">
                     <h3 className="text-sm font-bold text-foreground mb-3">Piso {floor}</h3>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 md:gap-2">
                       {floorRooms.map(room => {
                         const sc = room.status === 'available' ? 'bg-green-500 hover:bg-green-600 text-white' :
                           room.status === 'occupied' ? 'bg-red-500 hover:bg-red-600 text-white' :
@@ -167,7 +175,7 @@ export default function DashboardPage() {
                           <div key={room.id} title={`Hab ${room.number} - ${room.status}`}
                             className={`aspect-square rounded-xl flex flex-col items-center justify-center p-1 transition-all cursor-pointer shadow-sm ${sc}`}>
                             <span className="text-sm font-bold">{room.number}</span>
-                            <span className="text-[8px] uppercase tracking-wider opacity-90">{room.type.substring(0, 3)}</span>
+                            <span className="text-[9px] md:text-[10px] uppercase tracking-wider opacity-90">{room.type.substring(0, 3)}</span>
                           </div>
                         )
                       })}

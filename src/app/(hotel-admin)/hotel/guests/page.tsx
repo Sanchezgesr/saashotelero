@@ -81,45 +81,78 @@ export default function GuestsPage() {
       )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          {loading ? <div className="p-12 text-center text-gray-500">Cargando huéspedes...</div>
-          : (<><table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Nombre</th>
-                <th className="px-6 py-3 font-semibold text-gray-500 uppercase">DNI</th>
-                <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Teléfono</th>
-                <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Nacionalidad</th>
-                <th className="px-6 py-3 font-semibold text-gray-500 uppercase text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {guests.map((g) => (
-                <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{g.full_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.dni ?? '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.phone ?? '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.email ?? '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">{g.nationality}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => viewHistory(g)}
-                        className="flex items-center gap-1 text-primary border border-primary/20 bg-primary/10 px-2 py-1 rounded text-xs font-semibold hover:bg-primary/20 transition-colors cursor-pointer">
-                        <Eye size={12} /> Historial
-                      </button>
-                      <button onClick={() => { setEditingGuest(g); setShowForm(true) }}
-                        className="flex items-center gap-1 text-gray-600 border border-gray-200 bg-gray-50 px-2 py-1 rounded text-xs font-semibold hover:bg-gray-100 transition-colors cursor-pointer">
-                        <Pencil size={12} /> Editar
-                      </button>
-                    </div>
-                  </td>
+        {loading ? <div className="p-12 text-center text-gray-500">Cargando huéspedes...</div>
+        : (<>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Nombre</th>
+                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">DNI</th>
+                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Teléfono</th>
+                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase">Nacionalidad</th>
+                  <th className="px-6 py-3 font-semibold text-gray-500 uppercase text-right">Acciones</th>
                 </tr>
-              ))}
-              {(!loading && guests.length === 0) && <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No hay clientes registrados.</td></tr>}
-            </tbody>
-          </table><Pagination page={page} totalPages={totalPages} onPageChange={setPage} /></>)}
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {guests.map((g) => (
+                  <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{g.full_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.dni ?? '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.phone ?? '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{g.email ?? '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{g.nationality}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => viewHistory(g)}
+                          className="flex items-center gap-1 text-primary border border-primary/20 bg-primary/10 px-3 py-1.5 rounded text-xs font-semibold hover:bg-primary/20 transition-colors cursor-pointer min-h-[36px]">
+                          <Eye size={14} /> Historial
+                        </button>
+                        <button onClick={() => { setEditingGuest(g); setShowForm(true) }}
+                          className="flex items-center gap-1 text-gray-600 border border-gray-200 bg-gray-50 px-3 py-1.5 rounded text-xs font-semibold hover:bg-gray-100 transition-colors cursor-pointer min-h-[36px]">
+                          <Pencil size={14} /> Editar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {(!loading && guests.length === 0) && <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No hay clientes registrados.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {guests.map((g) => (
+              <div key={g.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-gray-900 text-sm truncate">{g.full_name}</p>
+                    <p className="text-xs text-gray-500">{g.dni ?? '—'}</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0 ml-2">
+                    <button onClick={() => viewHistory(g)}
+                      className="flex items-center gap-1 text-primary border border-primary/20 bg-primary/10 px-2.5 py-2 rounded-lg text-xs font-semibold hover:bg-primary/20 transition-colors cursor-pointer min-h-[36px]">
+                      <Eye size={14} />
+                    </button>
+                    <button onClick={() => { setEditingGuest(g); setShowForm(true) }}
+                      className="flex items-center gap-1 text-gray-600 border border-gray-200 bg-gray-50 px-2.5 py-2 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors cursor-pointer min-h-[36px]">
+                      <Pencil size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                  {g.phone && <span>📞 {g.phone}</span>}
+                  {g.email && <span>✉ {g.email}</span>}
+                  <span>🌍 {g.nationality}</span>
+                </div>
+              </div>
+            ))}
+            {(!loading && guests.length === 0) && <p className="p-12 text-center text-gray-500">No hay clientes registrados.</p>}
+          </div>
+          <div className="border-t border-gray-200"><Pagination page={page} totalPages={totalPages} onPageChange={setPage} /></div>
+        </>)}
       </div>
 
       {selectedGuest && <GuestHistoryModal guest={selectedGuest} history={history} onClose={() => setSelectedGuest(null)} />}

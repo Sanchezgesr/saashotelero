@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nextjs'
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
 
-if (dsn) {
+if (dsn && typeof window !== 'undefined') {
   Sentry.init({
     dsn,
     tracesSampleRate: 0.1,

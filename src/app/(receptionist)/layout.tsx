@@ -124,33 +124,40 @@ function BottomNav() {
 
   const mobileItems = [
     { label: 'Inicio',       icon: Home,      href: '/recepcion/dashboard' },
+    { label: 'Check-in',     icon: LogIn,     href: '/recepcion/checkin' },
+    { label: 'Check-out',    icon: LogOut,    href: '/recepcion/checkout' },
     { label: 'Habitaciones', icon: BedDouble, href: '/recepcion/rooms' },
     { label: 'Clientes',     icon: Users,     href: '/recepcion/guests' },
     { label: 'Caja',         icon: Wallet,    href: '/recepcion/cash' },
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border flex justify-around items-center py-1 md:hidden z-50">
-      {mobileItems.map((item) => {
-        const Icon = item.icon
-        const isActive = pathname === item.href
-        return (
-          <Link key={item.href} href={item.href}
-            className={cn(
-              'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] transition-colors',
-              isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
-            )}>
-            <Icon size={18} /> {item.label}
-          </Link>
-        )
-      })}
-      <form action={signOut}>
-        <button type="submit"
-          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] text-muted-foreground cursor-pointer">
-          <LogOut size={18} /> Salir
-        </button>
-      </form>
-    </nav>
+    <div className="fixed bottom-0 left-0 right-0 md:hidden z-50">
+      <nav className="overflow-x-auto bg-white border-t border-border scrollbar-hide">
+        <div className="flex items-center min-w-max px-1 py-1.5 gap-0.5">
+          {mobileItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link key={item.href} href={item.href}
+                className={cn(
+                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] whitespace-nowrap transition-colors shrink-0',
+                  isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
+                )}>
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            )
+          })}
+          <form action={signOut} className="shrink-0">
+            <button type="submit"
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground whitespace-nowrap cursor-pointer">
+              <LogOut size={18} /> Salir
+            </button>
+          </form>
+        </div>
+      </nav>
+    </div>
   )
 }
 

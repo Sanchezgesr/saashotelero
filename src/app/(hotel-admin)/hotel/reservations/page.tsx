@@ -162,7 +162,7 @@ export default function ReservationsPage() {
                     </button>
                   )}
                   <button onClick={() => handleDelete(r.id)}
-                    className="p-1.5 text-red-600 bg-red-50 rounded-lg border border-red-200 cursor-pointer">
+                    className="p-2.5 text-red-600 bg-red-50 rounded-lg border border-red-200 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center">
                     <Trash2 size={14} />
                   </button>
                 </div>

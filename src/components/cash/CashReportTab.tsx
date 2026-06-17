@@ -117,7 +117,7 @@ export function CashReportTab() {
       {movements.length > 0 && (
         <>
           <CashSummaryCards summary={summary} compact />
-          <CashMovementsTable movements={movements} showDate />
+          <CashMovementsTable movements={movements} />
         </>
       )}
     </div>
