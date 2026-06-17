@@ -641,5 +641,62 @@ CROSS JOIN (
 ON CONFLICT (hotel_id, name) DO NOTHING;
 
 -- ============================================
+-- 14. FACTURACIÓN ELECTRÓNICA (migración 007)
+-- ============================================
+CREATE TABLE IF NOT EXISTS hotel_fiscal_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+  lucode_token TEXT NOT NULL DEFAULT '',
+  serie_boleta TEXT NOT NULL DEFAULT 'B001',
+  serie_factura TEXT NOT NULL DEFAULT 'F001',
+  enabled BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(hotel_id)
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+  checkin_id UUID REFERENCES checkins(id),
+  tipo TEXT NOT NULL CHECK (tipo IN ('boleta', 'factura')),
+  serie TEXT NOT NULL,
+  numero INTEGER NOT NULL,
+  monto NUMERIC(10,2) NOT NULL,
+  cliente_tipo_documento TEXT,
+  cliente_numero_documento TEXT,
+  cliente_denominacion TEXT,
+  estado TEXT NOT NULL DEFAULT 'pendiente',
+  hash TEXT,
+  xml_url TEXT,
+  cdr_url TEXT,
+  pdf_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(serie, numero)
+);
+
+-- ============================================
+-- 15. PLANES (migración 006 + 008)
+-- ============================================
+CREATE TABLE IF NOT EXISTS plans (
+  name TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  duration_days INTEGER NOT NULL,
+  price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  description TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT INTO plans (name, label, duration_days, price, description, sort_order) VALUES
+  ('basico', 'Básico', 30, 45, 'Sin facturación electrónica', 1),
+  ('pro', 'Pro', 30, 65, 'Con facturación electrónica SUNAT', 2)
+ON CONFLICT (name) DO UPDATE SET
+  label = EXCLUDED.label,
+  duration_days = EXCLUDED.duration_days,
+  price = EXCLUDED.price,
+  description = EXCLUDED.description,
+  sort_order = EXCLUDED.sort_order;
+
+-- ============================================
 -- End of schema
 -- ============================================

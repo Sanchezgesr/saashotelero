@@ -2,13 +2,14 @@
 
 import { Building2, MapPin, Edit2, ShieldAlert, ShieldCheck, Trash2, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Hotel, PlanId } from '@/types'
-import { PLANS } from '@/lib/utils/plans'
+import type { Hotel } from '@/types'
 import { fmtDate } from '@/lib/utils/dates'
+import type { PlanConfig } from '@/lib/utils/plans'
 import { Pagination } from '@/components/Pagination'
 
 interface HotelsTableProps {
   hotels: Hotel[]
+  plans: PlanConfig[]
   loading: boolean
   page: number
   totalPages: number
@@ -21,7 +22,7 @@ interface HotelsTableProps {
 }
 
 export function HotelsTable({
-  hotels, loading, page, totalPages, showDeleted,
+  hotels, plans, loading, page, totalPages, showDeleted,
   onPageChange, onEdit, onStatusChange, onDelete, onRestore,
 }: HotelsTableProps) {
   if (loading) {
@@ -62,7 +63,7 @@ export function HotelsTable({
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-primary/20 text-primary">
-                  {PLANS[hotel.plan as PlanId]?.name ?? hotel.plan}
+                  {plans.find(p => p.name === hotel.plan)?.label ?? hotel.plan}
                 </span>
                 {hotel.plan_expires_at && (
                   <div className="text-[10px] text-gray-400 mt-0.5">Vence: {fmtDate(hotel.plan_expires_at)}</div>

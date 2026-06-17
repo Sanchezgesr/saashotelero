@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
-import { Search, ArrowRight, ArrowLeft, Check, UserPlus } from 'lucide-react'
+import { Search, ArrowRight, ArrowLeft, Check, UserPlus, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { performCheckin, createGuest, getAvailableRooms } from './actions'
 import { useRouter } from 'next/navigation'
 import { fmtDateTime } from '@/lib/utils/dates'
+import { printNotaVenta } from '@/components/print/NotaVentaPrint'
 
 type Step = 'guest' | 'room' | 'confirm'
 
@@ -23,6 +24,15 @@ export default function CheckinPage() {
   const [availableRooms, setAvailableRooms] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [checkinResult, setCheckinResult] = useState<any>(null)
+  const [hotel, setHotel] = useState<any>(null)
+
+  useEffect(() => {
+    if (!profile?.hotel_id) return
+    createClient().from('hotels').select('name, plan').eq('id', profile.hotel_id).single().then(({ data }) => {
+      if (data) setHotel(data)
+    })
+  }, [profile?.hotel_id])
 
   const handleSearch = async () => {
     if (!dni) return
@@ -71,7 +81,7 @@ export default function CheckinPage() {
     if (!profile?.hotel_id || !guest || !room || submitting) return
     setSubmitting(true)
     try {
-      await performCheckin({
+      const r = await performCheckin({
         hotel_id: profile.hotel_id,
         guest_id: guest.id,
         room_id: room.id,
@@ -79,7 +89,7 @@ export default function CheckinPage() {
         notes,
       })
       toast.success('Check-in registrado exitosamente')
-      router.push('/recepcion/dashboard')
+      setCheckinResult({ ...r, guest, room })
     } catch (err: any) {
       toast.error(err.message || 'Error al registrar check-in')
     } finally {
@@ -176,7 +186,7 @@ export default function CheckinPage() {
       )}
 
       {/* Step 3: Confirm */}
-      {step === 'confirm' && (
+      {step === 'confirm' && !checkinResult && (
         <div className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-4">
           <h2 className="font-semibold">Confirmar check-in</h2>
           <div className="bg-muted rounded-lg p-3 space-y-2 text-sm">
@@ -200,6 +210,38 @@ export default function CheckinPage() {
               <Check size={20} /> {submitting ? 'REGISTRANDO...' : 'REGISTRAR CHECK-IN'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Success + Print Nota de Venta */}
+      {checkinResult && (
+        <div className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Check-in registrado</h2>
+            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">✓ ÉXITO</span>
+          </div>
+          <div className="bg-muted rounded-lg p-3 space-y-1 text-sm">
+            <p><span className="text-muted-foreground">Cliente:</span> <strong>{checkinResult.guest?.full_name}</strong></p>
+            <p><span className="text-muted-foreground">Habitación:</span> <strong>{checkinResult.room?.number}</strong></p>
+            <p><span className="text-muted-foreground">Total:</span> <strong>S/. {Number(checkinResult.room?.price_per_night).toFixed(2)}</strong></p>
+          </div>
+          <button onClick={() => printNotaVenta({
+            hotelName: hotel?.name,
+            guestName: checkinResult.guest?.full_name,
+            guestDoc: checkinResult.guest?.dni,
+            roomNumber: checkinResult.room?.number,
+            checkIn: fmtDateTime(new Date()),
+            total: Number(checkinResult.room?.price_per_night),
+            paymentMethod: 'cash',
+            tipo: 'checkin',
+          })}
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white py-3 rounded-lg text-sm font-semibold hover:bg-gray-900">
+            <Printer size={18} /> Imprimir Nota de Venta
+          </button>
+          <button onClick={() => router.push('/recepcion/dashboard')}
+            className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg text-sm font-medium hover:bg-gray-200">
+            Ir al Dashboard
+          </button>
         </div>
       )}
     </div>

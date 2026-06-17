@@ -6,6 +6,8 @@ import { Plus, Search, Trash2 } from 'lucide-react'
 import { updateHotelStatus, deleteHotel, restoreHotel } from './actions'
 import { toast } from 'sonner'
 import type { Hotel } from '@/types'
+import type { PlanConfig } from '@/lib/utils/plans'
+import { getPlans } from '@/app/(super-admin)/admin/plans/actions'
 import { HotelFormModal } from '@/components/hotels/HotelFormModal'
 import { HotelsTable } from '@/components/hotels/HotelsTable'
 
@@ -13,12 +15,15 @@ const ITEMS_PER_PAGE = 25
 
 export default function HotelsPage() {
   const [hotels, setHotels] = useState<Hotel[]>([])
+  const [plans, setPlans] = useState<PlanConfig[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
   const [page, setPage] = useState(1)
   const [showDeleted, setShowDeleted] = useState(false)
+
+  useEffect(() => { getPlans().then(setPlans) }, [])
 
   const fetchHotels = async () => {
     setLoading(true)
@@ -98,6 +103,7 @@ export default function HotelsPage() {
 
         <HotelsTable
           hotels={paginatedHotels}
+          plans={plans}
           loading={loading}
           page={page}
           totalPages={totalPages}

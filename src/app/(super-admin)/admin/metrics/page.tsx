@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DollarSign, TrendingUp, Users, Percent, BarChart3, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
-import { PLANS, type PlanId } from '@/lib/utils/plans'
+import type { PlanConfig } from '@/lib/utils/plans'
+import { getPlans } from '@/app/(super-admin)/admin/plans/actions'
 import { MetricCard } from '@/components/metrics/MetricCard'
 import { GrowthChart } from '@/components/metrics/GrowthChart'
 import { PlanPieChart } from '@/components/metrics/PlanPieChart'
 import { StatusChart } from '@/components/metrics/StatusChart'
 
 export default function MetricsPage() {
+  const [plansDb, setPlansDb] = useState<PlanConfig[]>([])
   const [data, setData] = useState({
     mrr: 0, totalUsers: 0, activeHotels: 0, suspendedHotels: 0, hotelsExpiringSoon: 0,
     plans: {} as Record<string, number>, monthlyGrowth: [] as { month: string; count: number }[],
@@ -28,9 +30,13 @@ export default function MetricsPage() {
     const suspended = hotels?.filter(h => h.status === 'suspended') || []
     const now = new Date(); const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
     const expiringSoon = active.filter(h => { if (!h.plan_expires_at) return false; const exp = new Date(h.plan_expires_at); return exp > now && exp <= in30Days })
-    const calculatedMRR = active.reduce((total, hotel) => total + (PLANS[hotel.plan as PlanId]?.price ?? 0), 0)
+
+    const getPlanPrice = (planName: string) => plansDb.find(p => p.name === planName)?.price ?? 0
+    const getPlanLabel = (planName: string) => plansDb.find(p => p.name === planName)?.label ?? planName
+
+    const calculatedMRR = active.reduce((total, hotel) => total + getPlanPrice(hotel.plan), 0)
     const plansCount: Record<string, number> = {}
-    hotels?.forEach(h => { const name = PLANS[h.plan as PlanId]?.name ?? h.plan; plansCount[name] = (plansCount[name] || 0) + 1 })
+    hotels?.forEach(h => { const name = getPlanLabel(h.plan); plansCount[name] = (plansCount[name] || 0) + 1 })
 
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     const monthlyData: Record<string, number> = {}
@@ -43,7 +49,9 @@ export default function MetricsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchMetrics() }, [])
+  useEffect(() => { getPlans().then(setPlansDb) }, [])
+
+  useEffect(() => { if (plansDb.length > 0) fetchMetrics() }, [plansDb])
 
   const avgRevenue = data.activeHotels > 0 ? data.mrr / data.activeHotels : 0
   const churnRate = data.activeHotels + data.suspendedHotels > 0 ? ((data.suspendedHotels / (data.activeHotels + data.suspendedHotels)) * 100).toFixed(1) : '0.0'

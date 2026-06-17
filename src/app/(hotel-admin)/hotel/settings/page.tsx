@@ -3,9 +3,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
-import { Upload, Building2, MapPin, Phone, FileText, CreditCard, Calendar, Palette } from 'lucide-react'
+import { Upload, Building2, MapPin, Phone, FileText, CreditCard, Calendar, Palette, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
-import { PLANS, type PlanId } from '@/lib/utils/plans'
+import type { PlanConfig } from '@/lib/utils/plans'
+import { getPlans } from '@/app/(super-admin)/admin/plans/actions'
 import { THEMES, type ThemeId } from '@/lib/themes'
 import { useTheme } from '@/components/ThemeProvider'
 import type { Hotel } from '@/types'
@@ -19,6 +20,7 @@ export default function SettingsPage() {
   const [hotel, setHotel] = useState<Hotel | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [plans, setPlans] = useState<PlanConfig[]>([])
   const [roomTypes, setRoomTypes] = useState<{ name: string; label: string }[]>([])
   const [toggling, setToggling] = useState<string | null>(null)
 
@@ -32,6 +34,7 @@ export default function SettingsPage() {
   ]
 
   useEffect(() => {
+    getPlans().then(setPlans)
     if (!profile?.hotel_id) return
     supabase.from('hotels').select('*').eq('id', profile.hotel_id).single().then(({ data }) => {
       if (data) setHotel(data)
@@ -115,7 +118,7 @@ export default function SettingsPage() {
             <CreditCard className="w-5 h-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Plan</p>
-              <p className="font-medium">{PLANS[hotel.plan as PlanId]?.name ?? hotel.plan}</p>
+              <p className="font-medium">{plans.find(p => p.name === hotel.plan)?.label ?? hotel.plan}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -174,6 +177,44 @@ export default function SettingsPage() {
             )
           })}
         </div>
+      </div>
+
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><FileText size={18} /> Facturación Electrónica SUNAT</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Configura tu token de Lucode para emitir boletas y facturas electrónicas desde el sistema.
+          Obtén tu token en <a href="https://app.apisunat.pe" target="_blank" rel="noreferrer" className="text-primary underline">app.apisunat.pe</a>
+        </p>
+        {plans.length > 0 && (
+          <form action={async (fb) => {
+            const token = fb.get('lucode_token') as string
+            const t = fb.get('_action') as string
+            if (!profile?.hotel_id) return
+            const { error } = await createClient()
+              .from('hotel_fiscal_config').upsert({
+                hotel_id: profile.hotel_id,
+                lucode_token: token,
+                serie_boleta: (fb.get('serie_boleta') as string) || 'B001',
+                serie_factura: (fb.get('serie_factura') as string) || 'F001',
+                enabled: t === 'enable' ? true : false,
+                updated_at: new Date().toISOString(),
+              })
+            if (error) toast.error('Error al guardar: ' + error.message)
+            else toast.success('Configuración guardada')
+          }}>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Token Lucode</label>
+                <input name="lucode_token" defaultValue={''}
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono" />
+              </div>
+              <button type="submit"
+                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
+                Guardar configuración
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border border-border p-6">

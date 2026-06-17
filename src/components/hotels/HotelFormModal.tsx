@@ -5,8 +5,10 @@ import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { createHotel } from '@/app/(super-admin)/admin/hotels/actions'
-import type { Hotel, PlanId } from '@/types'
-import { PLANS, calculateExpiry } from '@/lib/utils/plans'
+import type { Hotel } from '@/types'
+import { calculateExpiry } from '@/lib/utils/plans'
+import type { PlanConfig } from '@/lib/utils/plans'
+import { getPlans } from '@/app/(super-admin)/admin/plans/actions'
 
 interface HotelFormModalProps {
   open: boolean
@@ -16,32 +18,38 @@ interface HotelFormModalProps {
 }
 
 export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelFormModalProps) {
+  const [plans, setPlans] = useState<PlanConfig[]>([])
   const [form, setForm] = useState({
     name: '', ruc: '', city: '', address: '', phone: '',
-    plan: 'mensual' as PlanId,
-    plan_expires_at: calculateExpiry('mensual').split('T')[0],
+    plan: '', plan_expires_at: '',
   })
 
-  const updatePlan = (plan: PlanId) => {
-    setForm({ ...form, plan, plan_expires_at: calculateExpiry(plan).split('T')[0] })
+  useEffect(() => { getPlans().then(setPlans) }, [])
+
+  const updatePlan = (planName: string) => {
+    const p = plans.find(x => x.name === planName)
+    const days = p?.duration_days ?? 30
+    setForm({ ...form, plan: planName, plan_expires_at: calculateExpiry(days).split('T')[0] })
   }
 
   useEffect(() => {
+    if (plans.length === 0) return
+    const defaultPlan = plans[0]?.name ?? ''
     if (selectedHotel) {
       setForm({
         name: selectedHotel.name, ruc: selectedHotel.ruc || '', city: selectedHotel.city || '',
         address: selectedHotel.address || '', phone: selectedHotel.phone || '',
         plan: selectedHotel.plan,
-        plan_expires_at: calculateExpiry(selectedHotel.plan).split('T')[0],
+        plan_expires_at: selectedHotel.plan_expires_at?.split('T')[0] ?? calculateExpiry(plans.find(p => p.name === selectedHotel.plan)?.duration_days ?? 30).split('T')[0],
       })
     } else {
       setForm({
         name: '', ruc: '', city: '', address: '', phone: '',
-        plan: 'mensual' as PlanId,
-        plan_expires_at: calculateExpiry('mensual').split('T')[0],
+        plan: defaultPlan,
+        plan_expires_at: calculateExpiry(plans[0]?.duration_days ?? 30).split('T')[0],
       })
     }
-  }, [selectedHotel, open])
+  }, [selectedHotel, open, plans])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,7 +74,8 @@ export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelF
       if (res.error) { toast.error('Error al crear hotel: ' + res.error) }
       else {
         if (res.data?.id) {
-          await supabase.from('hotels').update({ plan_expires_at: calculateExpiry(form.plan) }).eq('id', res.data.id)
+          const p = plans.find(x => x.name === form.plan)
+          await supabase.from('hotels').update({ plan_expires_at: calculateExpiry(p?.duration_days ?? 30) }).eq('id', res.data.id)
         }
         toast.success('Hotel registrado exitosamente'); onClose(); onSaved()
       }
@@ -120,10 +129,10 @@ export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelF
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Plan *</label>
-              <select value={form.plan} onChange={(e) => updatePlan(e.target.value as PlanId)}
+              <select value={form.plan} onChange={(e) => updatePlan(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                {(Object.entries(PLANS) as [PlanId, typeof PLANS[PlanId]][]).map(([id, p]) => (
-                  <option key={id} value={id}>{p.name} {p.price > 0 ? `- S/${p.price}` : ''}</option>
+                {plans.map((p) => (
+                  <option key={p.name} value={p.name}>{p.label} {p.price > 0 ? `- S/${p.price}` : ''}</option>
                 ))}
               </select>
             </div>
