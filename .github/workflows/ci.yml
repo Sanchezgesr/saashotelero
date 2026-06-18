@@ -33,13 +33,25 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Build
-        run: npm run build
+        run: |
+          npm run build > build.log 2>&1 || CODE=$?
+          tail -80 build.log
+          echo "BUILD_EXIT_CODE=${CODE:-0}"
+          exit ${CODE:-0}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_APP_URL: https://hcontrol.org.pe
           NEXT_PUBLIC_APP_NAME: HControl
           NEXT_DISABLE_ESLINT_PLUGIN: true
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
 
   sonarcloud:
     needs: ci
