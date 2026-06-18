@@ -11,8 +11,10 @@ import { logAction } from '@/lib/audit'
 import { z } from 'zod'
 
 export async function getHotelPlan(hotelId: string) {
-  const supabase = createServiceClient()
-  const { data } = await supabase
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+  const svc = createServiceClient()
+  const { data } = await svc
     .from('hotels')
     .select('name, plan')
     .eq('id', hotelId)
@@ -44,6 +46,7 @@ export async function createGuest(data: {
   if (validationError || !validated) throw new Error(validationError || 'Datos inválidos')
 
   const supabase = await createClient()
+  await assertHotelAccess(supabase, validated.hotel_id)
   const { data: guest, error } = await supabase
     .from('guests').insert(validated).select().single()
   if (error) throw new Error(error.message)
@@ -63,7 +66,7 @@ export async function performCheckin(data: {
   const supabase = await createClient()
   await assertHotelAccess(supabase, validated.hotel_id)
 
-  await normalizeRoomType(validated.room_id)
+  await normalizeRoomType(validated.room_id, validated.hotel_id)
 
   // Fetch guest name and room number for cash movement audit description
   const { data: guest } = await supabase.from('guests').select('full_name').eq('id', validated.guest_id).single()

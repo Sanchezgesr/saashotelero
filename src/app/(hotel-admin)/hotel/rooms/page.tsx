@@ -103,7 +103,7 @@ export default function RoomsPage() {
       else toast.error('No se encontró check-in activo para esta habitación')
     } else if (room.status === 'cleaning') {
       if (confirm('¿Marcar habitación ' + room.number + ' como disponible?')) {
-        await markRoomAvailable(room.id, profile?.hotel_id)
+        await markRoomAvailable(room.id, profile?.hotel_id!)
         toast.success('Habitación disponible'); fetchRooms()
       }
     }

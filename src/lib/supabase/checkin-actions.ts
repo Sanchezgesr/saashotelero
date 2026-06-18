@@ -9,8 +9,9 @@ import { logAction } from '@/lib/audit'
 
 const VALID_TYPES = ['simple', 'doble', 'triple', 'matrimonial', 'familiar']
 
-export async function normalizeRoomType(roomId: string) {
+export async function normalizeRoomType(roomId: string, hotelId: string) {
   const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const { data: room } = await supabase.from('rooms').select('type').eq('id', roomId).single()
   if (room && !VALID_TYPES.includes(room.type)) {
     await supabase.from('rooms').update({ type: 'simple' }).eq('id', roomId)
@@ -55,7 +56,7 @@ export async function performCheckin(raw: {
   const supabase = await createClient()
   await assertHotelAccess(supabase, data.hotel_id)
 
-  await normalizeRoomType(data.room_id)
+  await normalizeRoomType(data.room_id, data.hotel_id)
 
   const { data: result, error } = await supabase.rpc('perform_checkin_v2', {
     p_hotel_id: data.hotel_id,
@@ -100,7 +101,7 @@ export async function performCheckout(data: {
   const supabase = await createClient()
   await assertHotelAccess(supabase, data.hotel_id)
 
-  await normalizeRoomType(data.room_id)
+  await normalizeRoomType(data.room_id, data.hotel_id)
 
   const { data: result, error } = await supabase.rpc('perform_checkout_v2', {
     p_hotel_id: data.hotel_id,
@@ -125,12 +126,10 @@ export async function performCheckout(data: {
   }
 }
 
-export async function markRoomAvailable(roomId: string, hotelId?: string) {
+export async function markRoomAvailable(roomId: string, hotelId: string) {
   const supabase = await createClient()
-  if (hotelId) {
-    await assertHotelAccess(supabase, hotelId)
-  }
-  await normalizeRoomType(roomId)
+  await assertHotelAccess(supabase, hotelId)
+  await normalizeRoomType(roomId, hotelId)
   await supabase.from('rooms').update({ status: 'available' }).eq('id', roomId)
   revalidatePath('/hotel/rooms')
   revalidatePath('/recepcion/rooms')

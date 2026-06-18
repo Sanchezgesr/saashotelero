@@ -2,10 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 import { emitirComprobante } from '@/lib/facturacion/lucode'
 
 export async function getHotelPlan(hotelId: string) {
-  const supabase = createServiceClient()
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+  const svc = createServiceClient()
   const { data } = await supabase
     .from('hotels')
     .select('name, plan')
@@ -15,7 +18,9 @@ export async function getHotelPlan(hotelId: string) {
 }
 
 export async function getFiscalConfig(hotelId: string) {
-  const supabase = createServiceClient()
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+  const svc = createServiceClient()
   const { data } = await supabase
     .from('hotel_fiscal_config')
     .select('*')
@@ -26,6 +31,7 @@ export async function getFiscalConfig(hotelId: string) {
 
 export async function getLastInvoiceNumber(hotelId: string, tipo: string, serie: string) {
   const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const { data } = await supabase
     .from('invoices')
     .select('numero')
@@ -47,11 +53,13 @@ export async function emitirComprobanteAction(formData: FormData) {
   const clienteDenom = formData.get('cliente_denominacion') as string
   const clienteDireccion = formData.get('cliente_direccion') as string
 
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+
   const svc = createServiceClient()
   const { data: hotel } = await svc.from('hotels').select('plan').eq('id', hotelId).single()
   if (!hotel?.plan?.startsWith('pro')) return { error: 'Plan Básico no incluye facturación electrónica. Actualiza a Pro.' }
 
-  const supabase = await createClient()
   const config = await getFiscalConfig(hotelId)
   if (!config?.enabled || !config.lucode_token) {
     return { error: 'Facturación electrónica no configurada. Configúrala en Ajustes.' }

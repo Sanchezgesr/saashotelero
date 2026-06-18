@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 
 export async function createReservation(raw: {
   hotel_id: string
@@ -38,6 +39,8 @@ export async function createReservation(raw: {
 }
 
 export async function fetchReservations(hotelId: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
   const { data, error } = await svc
     .from('reservations')
@@ -50,6 +53,8 @@ export async function fetchReservations(hotelId: string) {
 }
 
 export async function fetchRoomsWithData(hotelId: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
 
   const [roomsResult, checkinsResult, reservationsResult] = await Promise.all([
@@ -69,17 +74,27 @@ export async function fetchRoomsWithData(hotelId: string) {
 
 export async function updateReservationStatus(reservationId: string, status: string) {
   const svc = createServiceClient()
+  const { data: reservation } = await svc.from('reservations').select('hotel_id').eq('id', reservationId).single()
+  if (!reservation) throw new Error('Reserva no encontrada')
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, reservation.hotel_id)
   const { error } = await svc.from('reservations').update({ status }).eq('id', reservationId)
   if (error) throw new Error('Error al actualizar estado')
 }
 
 export async function deleteReservation(reservationId: string) {
   const svc = createServiceClient()
+  const { data: reservation } = await svc.from('reservations').select('hotel_id').eq('id', reservationId).single()
+  if (!reservation) throw new Error('Reserva no encontrada')
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, reservation.hotel_id)
   const { error } = await svc.from('reservations').delete().eq('id', reservationId)
   if (error) throw new Error('Error al eliminar reserva')
 }
 
 export async function fetchRoomsAndReservations(hotelId: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
 
   const [roomsResult, checkinsResult, reservationsResult] = await Promise.all([

@@ -2,10 +2,13 @@
 
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 import { emitirComprobante } from '@/lib/facturacion/lucode'
 import { revalidatePath } from 'next/cache'
 
 export async function getPendingCheckins(hotelId: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
   const { data: invoiceRows } = await svc
     .from('invoices')
@@ -26,6 +29,8 @@ export async function getPendingCheckins(hotelId: string) {
 }
 
 export async function getFiscalConfig(hotelId: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
   const { data } = await svc
     .from('hotel_fiscal_config')
@@ -36,12 +41,16 @@ export async function getFiscalConfig(hotelId: string) {
 }
 
 export async function getHotelName(hotelId: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
   const { data } = await svc.from('hotels').select('name').eq('id', hotelId).single()
   return data?.name ?? ''
 }
 
 async function getLastInvoiceNumber(hotelId: string, tipo: string, serie: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
   const { data } = await svc
     .from('invoices')
@@ -63,6 +72,9 @@ export async function emitirComprobanteAction(formData: FormData) {
   const clienteNumDoc = formData.get('cliente_numero_documento') as string
   const clienteDenom = formData.get('cliente_denominacion') as string
   const clienteDireccion = formData.get('cliente_direccion') as string
+
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
 
   const svc = createServiceClient()
 

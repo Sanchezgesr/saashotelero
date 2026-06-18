@@ -53,7 +53,7 @@ export function RoomForm({
     }
     const supabase = createClient()
     if (editingRoom) {
-      await normalizeRoomType(editingRoom.id)
+      await normalizeRoomType(editingRoom.id, hotelId)
       const { error } = await supabase.from('rooms').update({ ...form, price_per_night: price }).eq('id', editingRoom.id)
       if (error) { toast.error('Error al actualizar: ' + error.message) } else { toast.success('Habitación actualizada'); onCreated() }
     } else {
