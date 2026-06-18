@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Plus, Lock, Wallet, ArrowUpRight, ArrowDownRight, ShieldAlert } from 'lucide-react'
@@ -21,7 +21,7 @@ export default function CashPage() {
   const [loading, setLoading] = useState(true)
   const [closureNotes, setClosureNotes] = useState('')
 
-  const fetchMovements = async () => {
+  const fetchMovements = useCallback(async () => {
     if (!profile?.hotel_id) return
     setLoading(true)
     const supabase = createClient()
@@ -62,9 +62,9 @@ export default function CashPage() {
       .order('closed_at', { ascending: false })
     setTodayClosures(closures ?? [])
     setLoading(false)
-  }
+  }, [profile?.hotel_id])
 
-  useEffect(() => { fetchMovements() }, [profile?.hotel_id])
+  useEffect(() => { fetchMovements() }, [fetchMovements])
 
   const closuresCount = todayClosures.length
   const maxClosures = 999

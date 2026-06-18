@@ -15,7 +15,6 @@ import { fmtDate } from '@/lib/utils/dates'
 
 export default function SettingsPage() {
   const { profile } = useUser()
-  const supabase = createClient()
   const { themeId, setTheme } = useTheme()
   const [hotel, setHotel] = useState<Hotel | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -34,6 +33,7 @@ export default function SettingsPage() {
   ]
 
   useEffect(() => {
+    const supabase = createClient()
     getPlans().then(setPlans)
     if (!profile?.hotel_id) return
     supabase.from('hotels').select('*').eq('id', profile.hotel_id).single().then(({ data }) => {
