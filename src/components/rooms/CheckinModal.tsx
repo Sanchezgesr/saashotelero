@@ -62,7 +62,7 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
       onClick={onClose}
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
       role="dialog" aria-modal="true" aria-label="Check-in">
-      <div className={`bg-white rounded-xl shadow-lg p-6 ${st.container} w-full mx-4`} onClick={(e) => e.stopPropagation()}>
+      <div className={`bg-white rounded-xl shadow-lg p-6 ${st.container} w-full mx-4`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
         <div className="flex items-center justify-between mb-4">
           <h2 className={`${st.title} font-bold`}>Check-in — Hab. {room.number}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>

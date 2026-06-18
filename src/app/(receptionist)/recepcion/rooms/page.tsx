@@ -166,6 +166,7 @@ export default function RoomsPage() {
             {upcomingReservations.slice(0, 5).map((res: any) => (
               <div key={res.id}
                 onClick={() => setSelectedReservation(res)}
+                onKeyDown={(e) => e.stopPropagation()} role="presentation"
                 className="bg-white rounded-lg border border-amber-200 p-2.5 flex items-center justify-between cursor-pointer hover:shadow-sm transition-shadow relative group"
               >
                 <div className="flex-1 min-w-0">

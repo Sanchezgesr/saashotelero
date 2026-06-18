@@ -11,7 +11,7 @@ export function GuestHistoryModal({ guest, history, onClose }: {
       onClick={onClose}
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
       role="dialog" aria-modal="true" aria-label="Historial del huésped">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{guest.full_name}</h2>

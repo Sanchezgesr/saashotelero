@@ -131,7 +131,7 @@ export default function RoomsPage() {
             <div className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
-              role="document">
+              role="presentation">
               <RoomForm hotelId={profile?.hotel_id!} editingRoom={editingRoom}
                 onCreated={() => { setShowForm(false); setEditingRoom(null); fetchRooms() }}
                 onCancel={() => { setShowForm(false); setEditingRoom(null) }} />
@@ -250,7 +250,8 @@ export default function RoomsPage() {
               <h3 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2"><span>📋</span> Reservas Próximas</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {upcomingReservations.map((res: any) => (
-                  <div key={res.id} onClick={() => setSelectedReservation(res)}
+                   <div key={res.id} onClick={() => setSelectedReservation(res)}
+                    onKeyDown={(e) => e.stopPropagation()} role="presentation"
                     className="bg-white rounded-lg border border-amber-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group">
                     <button onClick={(e) => handleDeleteReservation(e, res.id)}
                       className="absolute top-1.5 right-1.5 p-1 bg-red-50 text-red-500 rounded border border-red-100 hover:bg-red-100 transition-colors md:opacity-0 md:group-hover:opacity-100 cursor-pointer" title="Eliminar reserva">
