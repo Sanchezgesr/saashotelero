@@ -33,14 +33,10 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Build
-        run: |
-          npm run build > build.log 2>&1 || CODE=$?
-          tail -80 build.log
-          echo "BUILD_EXIT_CODE=${CODE:-0}"
-          exit ${CODE:-0}
+        run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://lcuojjmgkgzfferoollp.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjdW9qam1na2d6ZmZlcm9vbGxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYwNjc5NjIsImV4cCI6MjA1MTY0Mzk2Mn0.o0Z_mJzg6xP0UQY5Rk5SkLMS5Mqby7ohDm_CpMq9gSE
           NEXT_PUBLIC_APP_URL: https://hcontrol.org.pe
           NEXT_PUBLIC_APP_NAME: HControl
           NEXT_DISABLE_ESLINT_PLUGIN: true
