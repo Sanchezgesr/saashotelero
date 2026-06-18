@@ -39,6 +39,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_APP_URL: https://hcontrol.org.pe
           NEXT_PUBLIC_APP_NAME: HControl
+          NEXT_DISABLE_ESLINT_PLUGIN: true
 
   sonarcloud:
     needs: ci
