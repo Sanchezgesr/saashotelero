@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { RefreshCw, Trash2 } from 'lucide-react'
@@ -42,7 +42,7 @@ export default function RoomsPage() {
     }
   }
 
-  const fetchRooms = useCallback(async () => {
+  const fetchRooms = async () => {
     if (!profile?.hotel_id) return
     setLoading(true)
     try {
@@ -65,9 +65,10 @@ export default function RoomsPage() {
       toast.error('Error al cargar habitaciones')
       setLoading(false)
     }
-  }, [profile?.hotel_id])
+  }
 
-  useEffect(() => { fetchRooms() }, [fetchRooms])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchRooms() }, [profile?.hotel_id])
 
   const handleRoomClick = async (room: any) => {
     if (room.status === 'available') {

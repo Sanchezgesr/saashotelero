@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Search, Plus, Eye, Pencil } from 'lucide-react'
@@ -24,7 +24,7 @@ export default function GuestsPage() {
   const [page, setPage] = useState(1)
   const [totalGuests, setTotalGuests] = useState(0)
 
-  const fetchGuests = useCallback(async () => {
+  const fetchGuests = async () => {
     if (!profile?.hotel_id) return
     setLoading(true)
     const supabase = createClient()
@@ -39,10 +39,11 @@ export default function GuestsPage() {
     if (error) toast.error('Error al cargar clientes')
     else { setGuests(data || []); setTotalGuests(count ?? 0) }
     setLoading(false)
-  }, [profile?.hotel_id, search, page])
+  }
 
   useEffect(() => { setPage(1) }, [search])
-  useEffect(() => { fetchGuests() }, [fetchGuests])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchGuests() }, [profile?.hotel_id])
 
   const totalPages = Math.max(1, Math.ceil(totalGuests / ITEMS_PER_PAGE))
 

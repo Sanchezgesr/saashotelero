@@ -32,6 +32,7 @@ export default function SettingsPage() {
     { name: 'suite', label: 'Suite' },
   ]
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const supabase = createClient()
     getPlans().then(setPlans)

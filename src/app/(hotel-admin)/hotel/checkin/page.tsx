@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Search, UserPlus } from 'lucide-react'
@@ -25,13 +25,15 @@ export default function CheckinPage() {
     if (data) { setGuest(data); setStep(3) } else setStep(2)
   }
 
-  const loadRooms = useCallback(async () => {
-    if (!profile?.hotel_id) return
-    const { data } = await createClient().from('rooms').select('*').eq('hotel_id', profile.hotel_id).eq('status', 'available')
+  const loadRooms = async () => {
+    const hotelId = profile?.hotel_id
+    if (!hotelId) return
+    const { data } = await createClient().from('rooms').select('*').eq('hotel_id', hotelId).eq('status', 'available')
     setRooms(data ?? [])
-  }, [profile?.hotel_id])
+  }
 
-  useEffect(() => { loadRooms() }, [loadRooms])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadRooms() }, [profile?.hotel_id])
 
   const resetForm = () => { setStep(1); setDni(''); setGuest(null); setSelectedRoom(null); setPricePerNight(0); setNotes('') }
 

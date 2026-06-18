@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Calendar as CalendarIcon, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { fmtDate } from '@/lib/utils/dates'
 import { toast } from 'sonner'
@@ -31,15 +31,16 @@ export default function ReservationsPage() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const fetchList = useCallback(async () => {
+  const fetchList = async () => {
     if (!profile?.hotel_id) return
     setLoading(true)
     try { const data = await fetchReservations(profile.hotel_id); setReservations(data as any || []) }
     catch { toast.error('Error al cargar reservas') }
     setLoading(false)
-  }, [profile?.hotel_id])
+  }
 
-  useEffect(() => { fetchList() }, [fetchList])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchList() }, [profile?.hotel_id])
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try { await updateReservationStatus(id, newStatus); toast.success(`Reserva ${newStatus === 'cancelled' ? 'cancelada' : 'confirmada'}`); fetchList() }

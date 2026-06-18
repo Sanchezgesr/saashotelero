@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
@@ -62,7 +62,7 @@ export default function RoomsPage() {
     } catch { toast.error('Error al eliminar reserva') }
   }
 
-  const fetchRooms = useCallback(async () => {
+  const fetchRooms = async () => {
     if (!profile?.hotel_id) return
     setLoading(true)
     try {
@@ -81,9 +81,10 @@ export default function RoomsPage() {
       })) as any)
       setUpcomingReservations(upcoming)
     } catch { toast.error('Error al cargar habitaciones'); setLoading(false) }
-  }, [profile?.hotel_id])
+  }
 
-  useEffect(() => { fetchRooms() }, [fetchRooms])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchRooms() }, [profile?.hotel_id])
 
   const handleDelete = async (roomId: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar esta habitación?')) return
