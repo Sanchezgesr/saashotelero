@@ -41,18 +41,10 @@ jobs:
           NEXT_PUBLIC_APP_NAME: HControl
           NEXT_DISABLE_ESLINT_PLUGIN: true
 
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: build-log
-          path: build.log
-          retention-days: 7
-
   sonarcloud:
     needs: ci
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.fork == false
+    if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -87,7 +79,7 @@ jobs:
           out: .
           args: --suppression .dependency-check-suppress.xml --enableExperimental
         env:
-          JAVA_HOME: /opt/hostedtoolcache/Java_Adopt_jdk/17.0.14-7/x64
+          JAVA_HOME: $JAVA_HOME_17_X64
 
       - name: Upload Dependency-Check report
         if: always()
