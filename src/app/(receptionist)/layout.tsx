@@ -19,7 +19,7 @@ const menuItems = [
   { label: 'Habitaciones', icon: BedDouble, href: '/recepcion/rooms' },
   { label: 'Clientes',     icon: Users,     href: '/recepcion/guests' },
   { label: 'Caja',         icon: Wallet,    href: '/recepcion/cash' },
-  { label: 'Comprobantes', icon: FileText,  href: '/hotel/invoices' },
+  { label: 'Comprobantes', icon: FileText,  href: '/recepcion/invoices' },
 ]
 
 function Sidebar() {
@@ -130,7 +130,7 @@ function BottomNav() {
     { label: 'Habitaciones', icon: BedDouble, href: '/recepcion/rooms' },
     { label: 'Clientes',     icon: Users,     href: '/recepcion/guests' },
     { label: 'Caja',         icon: Wallet,    href: '/recepcion/cash' },
-    { label: 'Comp.',        icon: FileText,  href: '/hotel/invoices' },
+    { label: 'Comp.',        icon: FileText,  href: '/recepcion/invoices' },
   ]
 
   return (
