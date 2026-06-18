@@ -90,6 +90,28 @@ export interface RucData {
   distrito: string
 }
 
+export interface DniData {
+  dni: string
+  nombres: string
+  apellido_paterno: string
+  apellido_materno: string
+}
+
+export async function consultarDni(token: string, dni: string): Promise<DniData | null> {
+  const res = await fetch(`https://dev.apisunat.pe/api/v1/dni/${dni}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) return null
+  const json = await res.json()
+  if (!json.success) return null
+  return {
+    dni: json.payload.dni,
+    nombres: json.payload.nombres,
+    apellido_paterno: json.payload.apellido_paterno,
+    apellido_materno: json.payload.apellido_materno,
+  }
+}
+
 export async function consultarRuc(token: string, ruc: string): Promise<RucData | null> {
   const res = await fetch(`https://dev.apisunat.pe/api/v1/business/ruc/${ruc}`, {
     headers: { Authorization: `Bearer ${token}` },

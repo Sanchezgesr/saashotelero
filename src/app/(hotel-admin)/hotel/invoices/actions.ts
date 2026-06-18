@@ -3,9 +3,10 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
-import { emitirComprobante, consultarRuc } from '@/lib/facturacion/lucode'
+import { emitirComprobante, consultarRuc, consultarDni } from '@/lib/facturacion/lucode'
 import { revalidatePath } from 'next/cache'
 import { emitirComprobanteSchema, parseAction } from '@/lib/validations'
+import { mutationRateLimit } from '@/lib/rate-limit'
 
 export async function getPendingCheckins(hotelId: string) {
   const supabase = await createClient()
@@ -78,6 +79,9 @@ export async function emitirComprobanteAction(formData: FormData) {
   const raw = { hotel_id: hotelId, checkin_id: checkinId, tipo, cliente_tipo_documento: clienteTipoDoc, cliente_numero_documento: clienteNumDoc, cliente_denominacion: clienteDenom, cliente_direccion: clienteDireccion }
   const { error: validationError, data: validated } = parseAction(emitirComprobanteSchema, raw)
   if (validationError || !validated) return { error: validationError || 'Datos inválidos' }
+
+  const rl = await mutationRateLimit(`invoices:${validated.hotel_id}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
 
   const supabase = await createClient()
   await assertHotelAccess(supabase, validated.hotel_id)
@@ -158,6 +162,7 @@ export async function emitirComprobanteAction(formData: FormData) {
   }
 
   revalidatePath('/hotel/invoices')
+  revalidatePath('/recepcion/invoices')
 
   return {
     success: true,
@@ -180,4 +185,17 @@ export async function consultarRucAction(hotelId: string, ruc: string) {
     .single()
   if (!config?.lucode_token) return null
   return consultarRuc(config.lucode_token, ruc)
+}
+
+export async function consultarDniAction(hotelId: string, dni: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+  const svc = createServiceClient()
+  const { data: config } = await svc
+    .from('hotel_fiscal_config')
+    .select('lucode_token')
+    .eq('hotel_id', hotelId)
+    .single()
+  if (!config?.lucode_token) return null
+  return consultarDni(config.lucode_token, dni)
 }

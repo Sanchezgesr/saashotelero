@@ -7,7 +7,7 @@ import { Search, Receipt, FileText, ExternalLink, Printer, ArrowLeft, X } from '
 import { fmtDateTime } from '@/lib/utils/dates'
 import { toast } from 'sonner'
 import { printNotaVenta, getWhatsAppLink } from '@/components/print/NotaVentaPrint'
-import { emitirComprobanteAction, consultarRucAction, getPendingCheckins, getFiscalConfig, getHotelName } from '@/app/(hotel-admin)/hotel/invoices/actions'
+import { emitirComprobanteAction, consultarRucAction, consultarDniAction, getPendingCheckins, getFiscalConfig, getHotelName } from '@/app/(hotel-admin)/hotel/invoices/actions'
 
 type Tab = 'emitir' | 'historial'
 
@@ -336,8 +336,22 @@ export default function InvoicesPage() {
                 {invoiceModal.tipo === 'boleta' ? (
                   <div>
                     <label className="block text-sm font-medium mb-1">N° Documento (DNI)</label>
-                    <input id="fe-numero-doc" defaultValue={invoiceModal.checkin.guests?.dni || ''}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
+                    <div className="flex gap-2">
+                      <input id="fe-numero-doc" defaultValue={invoiceModal.checkin.guests?.dni || ''}
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm" />
+                      <button type="button" onClick={async () => {
+                        const dni = (document.getElementById('fe-numero-doc') as HTMLInputElement)?.value?.replace(/\D/g, '')
+                        if (dni?.length !== 8) return
+                        const data = await consultarDniAction(profile?.hotel_id!, dni)
+                        if (data) {
+                          const denom = document.getElementById('fe-denominacion') as HTMLInputElement
+                          if (denom) denom.value = `${data.apellido_paterno} ${data.apellido_materno}, ${data.nombres}`.replace(/^\s*,/, '').trim()
+                        }
+                      }}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90" aria-label="Buscar DNI">
+                        Buscar
+                      </button>
+                    </div>
                     <label className="block text-sm font-medium mt-3 mb-1">Denominación</label>
                     <input id="fe-denominacion" defaultValue={invoiceModal.checkin.guests?.full_name || ''}
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
@@ -348,11 +362,12 @@ export default function InvoicesPage() {
                 ) : (
                   <div>
                     <label className="block text-sm font-medium mb-1">RUC *</label>
-                    <input id="fe-numero-doc" placeholder="20123456789"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm"
-                      onBlur={async (e) => {
-                        const ruc = e.target.value.replace(/\D/g, '')
-                        if (ruc.length !== 11) return
+                    <div className="flex gap-2">
+                      <input id="fe-numero-doc" placeholder="20123456789"
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm" />
+                      <button type="button" onClick={async () => {
+                        const ruc = (document.getElementById('fe-numero-doc') as HTMLInputElement)?.value?.replace(/\D/g, '')
+                        if (ruc?.length !== 11) return
                         const data = await consultarRucAction(profile?.hotel_id!, ruc)
                         if (data) {
                           const denom = document.getElementById('fe-denominacion') as HTMLInputElement
@@ -360,7 +375,11 @@ export default function InvoicesPage() {
                           if (denom) denom.value = data.razon_social
                           if (dir) dir.value = data.direccion
                         }
-                      }} />
+                      }}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90" aria-label="Buscar RUC">
+                        Buscar
+                      </button>
+                    </div>
                     <label className="block text-sm font-medium mt-3 mb-1">Razón Social *</label>
                     <input id="fe-denominacion" placeholder="..."
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
