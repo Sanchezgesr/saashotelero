@@ -126,7 +126,7 @@ async function main() {
     process.exit(1)
   }
   const cookie = encodeSessionCookie(loginResult.session)
-  console.log(`✓ Token obtenido en ${loginResult.time}ms (válido ${loginResult.session.expires_in}s)`)
+  console.log(`✓ Token obtenido en ${loginResult.time}ms`)
 
   // 100 concurrentes
   await runConcurrent(100, 30, cookie)

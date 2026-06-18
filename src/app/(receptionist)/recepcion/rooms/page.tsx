@@ -91,7 +91,7 @@ export default function RoomsPage() {
   }
 
   const filteredRooms = selectedFilter ? rooms.filter(r => r.status === selectedFilter) : rooms
-  const floors = [...new Set(filteredRooms.map(r => r.floor).filter(f => f != null))].sort()
+  const floors = [...new Set(filteredRooms.map(r => r.floor).filter(f => f != null))].sort((a, b) => (a as number) - (b as number))
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-6">

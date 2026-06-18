@@ -49,7 +49,7 @@ export default function RoomsPage() {
   const allStatuses = ['available', 'occupied', 'cleaning', 'maintenance']
 
   const filteredRooms = selectedFilter ? rooms.filter(r => r.status === selectedFilter) : rooms
-  const floors = [...new Set(filteredRooms.map(r => r.floor).filter(f => f != null))].sort()
+  const floors = [...new Set(filteredRooms.map(r => r.floor).filter(f => f != null))].sort((a, b) => (a as number) - (b as number))
 
   const handleDeleteReservation = async (e: React.MouseEvent, resId: string) => {
     e.stopPropagation()
@@ -124,7 +124,10 @@ export default function RoomsPage() {
 
       {showForm && (
         editingRoom ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setShowForm(false); setEditingRoom(null) }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => { setShowForm(false); setEditingRoom(null) }}
+            onKeyDown={(e) => { if (e.key === 'Escape') { setShowForm(false); setEditingRoom(null) } }}
+            role="dialog" aria-modal="true" aria-label="Editar habitación">
             <div className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <RoomForm hotelId={profile?.hotel_id!} editingRoom={editingRoom}
                 onCreated={() => { setShowForm(false); setEditingRoom(null); fetchRooms() }}

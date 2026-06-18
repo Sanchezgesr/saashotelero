@@ -184,7 +184,10 @@ export default function GuestsPage() {
       )}
 
       {selectedGuest && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedGuest(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedGuest(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSelectedGuest(null) }}
+          role="dialog" aria-modal="true" aria-label="Detalle del huésped">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-200 flex items-center justify-between">
               <div>

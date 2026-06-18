@@ -34,7 +34,10 @@ export function CheckoutModal({ checkin, onClose, variant = 'admin' }: CheckoutM
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+      role="dialog" aria-modal="true" aria-label="Checkout">
       <div className={`bg-white rounded-xl shadow-lg p-6 ${st.container} w-full mx-4`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">Check-out — Hab. {checkin.rooms?.number}</h2>

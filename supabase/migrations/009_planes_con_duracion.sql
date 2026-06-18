@@ -1,7 +1,7 @@
 -- Migración 009: Planes con duración mensual/trimestral/semestral/anual
 -- Elimina planes anteriores (basico, pro) y crea 8 combinaciones
 
-DELETE FROM plans;
+TRUNCATE plans;
 
 INSERT INTO plans (name, label, duration_days, price, description, sort_order) VALUES
   ('basico_mensual',    'Básico Mensual',     30,  45,  'Sin facturación electrónica. Pago mensual.',        1),

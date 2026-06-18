@@ -58,7 +58,10 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+      role="dialog" aria-modal="true" aria-label="Check-in">
       <div className={`bg-white rounded-xl shadow-lg p-6 ${st.container} w-full mx-4`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className={`${st.title} font-bold`}>Check-in — Hab. {room.number}</h2>
@@ -78,7 +81,7 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
               <div className="space-y-2">
                 {searchResults.map((g) => (
                   <div key={g.id} className={`bg-green-50 border border-green-200 rounded-lg p-${variant === 'receptionist' ? '4' : '3'} text-center`}>
-                    <p className={`font-medium ${variant === 'receptionist' ? 'text-lg' : 'text-lg'}`}>{g.full_name}</p>
+                    <p className="font-medium text-lg">{g.full_name}</p>
                     <p className="text-sm text-gray-500">DNI: {g.dni} | {g.phone ?? '—'}</p>
                     <button onClick={() => selectGuest(g)}
                       className={`mt-3 bg-primary text-primary-foreground ${st.btnLg} rounded-lg ${variant === 'receptionist' ? 'text-base' : 'text-sm'} font-medium hover:opacity-90 ${st.minH}`}>
