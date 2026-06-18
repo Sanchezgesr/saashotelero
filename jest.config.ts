@@ -12,6 +12,7 @@ const config: Config = {
   collectCoverage: true,
   coverageReporters: ['lcov', 'text'],
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/*.test.*'],
+  testPathIgnorePatterns: ['/node_modules/', '/tests/e2e/'],
 }
 
 export default config
