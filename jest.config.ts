@@ -9,6 +9,9 @@ const config: Config = {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {}],
   },
+  collectCoverage: true,
+  coverageReporters: ['lcov', 'text'],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/*.test.*'],
 }
 
 export default config
