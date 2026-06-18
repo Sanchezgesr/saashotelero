@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 serie_factura: (fb.get('serie_factura') as string) || 'F001',
                 enabled: true,
                 updated_at: new Date().toISOString(),
-              })
+              }, { onConflict: 'hotel_id' })
             if (error) toast.error('Error al guardar: ' + error.message)
             else {
               toast.success('Configuración guardada')
