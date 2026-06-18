@@ -22,6 +22,12 @@ export default function SettingsPage() {
   const [plans, setPlans] = useState<PlanConfig[]>([])
   const [roomTypes, setRoomTypes] = useState<{ name: string; label: string }[]>([])
   const [toggling, setToggling] = useState<string | null>(null)
+  const [fiscalConfig, setFiscalConfig] = useState<{
+    lucode_token?: string
+    serie_boleta?: string
+    serie_factura?: string
+    enabled?: boolean
+  } | null>(null)
 
   const ALL_TYPES = [
     { name: 'simple', label: 'Simple' },
@@ -42,6 +48,9 @@ export default function SettingsPage() {
     })
     getRoomTypes(profile.hotel_id).then((res) => {
       if (res.data) setRoomTypes(res.data)
+    })
+    supabase.from('hotel_fiscal_config').select('*').eq('hotel_id', profile.hotel_id).single().then(({ data }) => {
+      if (data) setFiscalConfig(data)
     })
   }, [profile?.hotel_id])
 
@@ -189,7 +198,6 @@ export default function SettingsPage() {
         {plans.length > 0 && (
           <form action={async (fb) => {
             const token = fb.get('lucode_token') as string
-            const t = fb.get('_action') as string
             if (!profile?.hotel_id) return
             const { error } = await createClient()
               .from('hotel_fiscal_config').upsert({
@@ -197,17 +205,32 @@ export default function SettingsPage() {
                 lucode_token: token,
                 serie_boleta: (fb.get('serie_boleta') as string) || 'B001',
                 serie_factura: (fb.get('serie_factura') as string) || 'F001',
-                enabled: t === 'enable' ? true : false,
+                enabled: true,
                 updated_at: new Date().toISOString(),
               })
             if (error) toast.error('Error al guardar: ' + error.message)
-            else toast.success('Configuración guardada')
+            else {
+              toast.success('Configuración guardada')
+              setFiscalConfig(prev => ({ ...prev, lucode_token: token, serie_boleta: (fb.get('serie_boleta') as string) || 'B001', serie_factura: (fb.get('serie_factura') as string) || 'F001', enabled: true }))
+            }
           }}>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Token Lucode</label>
-                <input name="lucode_token" defaultValue={''}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono" />
+                <input name="lucode_token" defaultValue={fiscalConfig?.lucode_token ?? ''}
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono" required />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Serie Boleta</label>
+                  <input name="serie_boleta" defaultValue={fiscalConfig?.serie_boleta ?? 'B001'}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Serie Factura</label>
+                  <input name="serie_factura" defaultValue={fiscalConfig?.serie_factura ?? 'F001'}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono" />
+                </div>
               </div>
               <button type="submit"
                 className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
