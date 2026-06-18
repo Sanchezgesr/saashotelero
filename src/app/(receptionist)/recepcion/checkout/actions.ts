@@ -111,7 +111,7 @@ export async function emitirComprobanteAction(formData: FormData) {
     cliente_direccion: validated.cliente_direccion,
     items,
     total,
-    sandbox: true,
+    sandbox: false,
   })
 
   if (!result.success) {
