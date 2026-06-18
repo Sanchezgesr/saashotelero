@@ -46,7 +46,7 @@ export const emitirComprobanteSchema = z.object({
   tipo: z.enum(['boleta', 'factura']),
   cliente_tipo_documento: z.enum(['1', '6'], { message: 'Tipo documento: 1=DNI, 6=RUC' }),
   cliente_numero_documento: z.string().regex(/^\d{8,11}$/, 'Documento debe tener 8 u 11 dígitos'),
-  cliente_denominacion: z.string().min(2).max(100).trim(),
+  cliente_denominacion: z.string().min(1).max(100).trim(),
   cliente_direccion: z.string().max(200).trim(),
 })
 
