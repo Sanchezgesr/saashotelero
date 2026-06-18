@@ -128,7 +128,10 @@ export default function RoomsPage() {
             onClick={() => { setShowForm(false); setEditingRoom(null) }}
             onKeyDown={(e) => { if (e.key === 'Escape') { setShowForm(false); setEditingRoom(null) } }}
             role="dialog" aria-modal="true" aria-label="Editar habitación">
-            <div className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              role="document">
               <RoomForm hotelId={profile?.hotel_id!} editingRoom={editingRoom}
                 onCreated={() => { setShowForm(false); setEditingRoom(null); fetchRooms() }}
                 onCancel={() => { setShowForm(false); setEditingRoom(null) }} />
@@ -187,6 +190,8 @@ export default function RoomsPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                   {filteredRooms.filter(r => r.floor === floor).map((room) => (
                     <div key={room.id} onClick={() => handleRoomClick(room)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleRoomClick(room) }}
+                      role="button" tabIndex={0}
                       className={`rounded-xl shadow-sm border p-5 flex flex-col justify-between hover:shadow-md transition-shadow group relative cursor-pointer ${
                         statusBgColors[room.status] || 'bg-card'
                       } ${
@@ -194,7 +199,10 @@ export default function RoomsPage() {
                       } ${
                         statusBorderHover[room.status] || 'hover:border-border'
                       }`}>
-                      <div className="absolute top-4 right-4 flex gap-1.5 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute top-4 right-4 flex gap-1.5 transition-opacity z-10"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        role="presentation">
                         <button onClick={() => { setEditingRoom(room); setShowForm(true) }} title="Editar"
                           className="p-1.5 bg-primary/10 text-primary rounded border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
                           <Pencil size={14} />
