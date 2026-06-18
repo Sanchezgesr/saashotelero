@@ -55,6 +55,7 @@ export async function fetchReservations(hotelId: string) {
     .select('*, rooms(number, type), guests(full_name)')
     .eq('hotel_id', hotelId)
     .order('check_in_date', { ascending: false })
+    .limit(100)
 
   if (error) throw new Error('Error al cargar reservas')
   return data
@@ -66,9 +67,9 @@ export async function fetchRoomsWithData(hotelId: string) {
   const svc = createServiceClient()
 
   const [roomsResult, checkinsResult, reservationsResult] = await Promise.all([
-    svc.from('rooms').select('*').eq('hotel_id', hotelId).order('number'),
+    svc.from('rooms').select('*').eq('hotel_id', hotelId).order('number').limit(100),
     svc.from('checkins').select('*, guests(full_name)').eq('hotel_id', hotelId).eq('status', 'active'),
-    svc.from('reservations').select('*, guests(full_name)').eq('hotel_id', hotelId).in('status', ['pending', 'confirmed']),
+    svc.from('reservations').select('*, guests(full_name)').eq('hotel_id', hotelId).in('status', ['pending', 'confirmed']).limit(100),
   ])
 
   if (roomsResult.error) throw new Error('Error al cargar habitaciones')
@@ -110,9 +111,9 @@ export async function fetchRoomsAndReservations(hotelId: string) {
   const svc = createServiceClient()
 
   const [roomsResult, checkinsResult, reservationsResult] = await Promise.all([
-    svc.from('rooms').select('*').eq('hotel_id', hotelId).order('number'),
+    svc.from('rooms').select('*').eq('hotel_id', hotelId).order('number').limit(100),
     svc.from('checkins').select('*, guests(full_name)').eq('hotel_id', hotelId).eq('status', 'active'),
-    svc.from('reservations').select('*, rooms(number, type), guests(full_name)').eq('hotel_id', hotelId).in('status', ['pending', 'confirmed']),
+    svc.from('reservations').select('*, rooms(number, type), guests(full_name)').eq('hotel_id', hotelId).in('status', ['pending', 'confirmed']).limit(100),
   ])
 
   if (roomsResult.error) throw new Error('Error al cargar habitaciones')

@@ -8,6 +8,7 @@ import { normalizeRoomType } from '@/lib/supabase/checkin-actions'
 import { parseAction } from '@/lib/validations'
 import { rateLimit } from '@/lib/rate-limit'
 import { logAction } from '@/lib/audit'
+import { encrypt } from '@/lib/encryption'
 import { z } from 'zod'
 
 export async function getHotelPlan(hotelId: string) {
@@ -47,8 +48,20 @@ export async function createGuest(data: {
 
   const supabase = await createClient()
   await assertHotelAccess(supabase, validated.hotel_id)
+
+  let encryptedPhone: string | null = null
+  let encryptedEmail: string | null = null
+  try {
+    if (validated.phone) encryptedPhone = encrypt(validated.phone)
+    if (validated.email) encryptedEmail = encrypt(validated.email)
+  } catch { /* encryption key not configured, skip */ }
+
   const { data: guest, error } = await supabase
-    .from('guests').insert(validated).select().single()
+    .from('guests').insert({
+      ...validated,
+      encrypted_phone: encryptedPhone,
+      encrypted_email: encryptedEmail,
+    }).select().single()
   if (error) throw new Error(error.message)
   return guest
 }
@@ -123,5 +136,6 @@ export async function getAvailableRooms(hotelId: string) {
     .eq('hotel_id', hotelId)
     .eq('status', 'available')
     .order('number')
+    .limit(100)
   return data ?? []
 }

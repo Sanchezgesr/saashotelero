@@ -1,0 +1,28 @@
+name: Uptime Check
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        id: health
+        run: |
+          CODE=$(curl -s -o /tmp/health.json -w "%{http_code}" \
+            "https://hcontrol.org.pe/api/health" \
+            --max-time 10)
+          echo "status_code=$CODE" >> $GITHUB_OUTPUT
+          cat /tmp/health.json
+
+      - name: Notify on failure
+        if: steps.health.outputs.status_code != '200'
+        run: |
+          echo "::warning::Health check returned ${{ steps.health.outputs.status_code }}"
+          curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.BACKUP_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"🔴 Uptime alert: hcontrol.org.pe returned ${{ steps.health.outputs.status_code }}\"}" \
+            || true

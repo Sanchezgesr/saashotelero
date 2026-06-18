@@ -15,5 +15,6 @@ export async function fetchUpcomingReservations(hotelId: string) {
     .in('status', ['pending', 'confirmed'])
     .gte('check_in_date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }))
     .order('check_in_date', { ascending: true })
+    .limit(100)
   return data || []
 }

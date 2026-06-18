@@ -27,7 +27,36 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 
+      - name: Verify backup integrity
+        run: |
+          echo "=== Verifying schema dump ==="
+          LINES=$(wc -l < schema_dump_*.sql)
+          SIZE=$(wc -c < schema_dump_*.sql)
+          echo "Schema: ${LINES} lines, ${SIZE} bytes"
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "ERROR: Schema dump too small (<1KB)"
+            exit 1
+          fi
+          # Basic SQL syntax check (BEGIN/COMMIT)
+          HEAD=$(head -1 schema_dump_*.sql)
+          if [[ "$HEAD" != *"BEGIN"* ]] && [[ "$HEAD" != *"CREATE"* ]]; then
+            echo "ERROR: Schema dump does not start with valid SQL"
+            exit 1
+          fi
+          echo "Schema dump OK"
+
+          echo "=== Verifying data dump ==="
+          LINES=$(wc -l < data_dump_*.sql)
+          SIZE=$(wc -c < data_dump_*.sql)
+          echo "Data: ${LINES} lines, ${SIZE} bytes"
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "ERROR: Data dump too small (<1KB)"
+            exit 1
+          fi
+          echo "Data dump OK"
+
       - name: Upload backup artifact
+        if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: supabase-backup-${{ github.run_id }}
@@ -35,3 +64,13 @@ jobs:
             schema_dump_*.sql
             data_dump_*.sql
           retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::warning::Backup failed for run ${{ github.run_id }}"
+          curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.BACKUP_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"❌ Backup failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            || true

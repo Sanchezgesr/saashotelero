@@ -15,6 +15,7 @@ export async function getPendingCheckins(hotelId: string) {
     .from('invoices')
     .select('checkin_id')
     .eq('hotel_id', hotelId)
+    .limit(100)
   const excludeIds = invoiceRows?.map(i => i.checkin_id).filter(Boolean) ?? []
   let query = svc
     .from('checkins')

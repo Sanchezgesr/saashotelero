@@ -14,6 +14,7 @@ export async function getStaff(hotelId: string) {
     .from('profiles')
     .select('*')
     .eq('hotel_id', hotelId)
+    .limit(100)
   if (error) throw new Error(error.message)
   return data ?? []
 }

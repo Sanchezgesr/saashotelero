@@ -50,7 +50,7 @@ export async function getRoomTypes(hotelId: string) {
   const supabase = await createClient()
   await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
-  const { data, error } = await svc.from('hotel_room_types').select('name, label').eq('hotel_id', hotelId).order('name')
+  const { data, error } = await svc.from('hotel_room_types').select('name, label').eq('hotel_id', hotelId).order('name').limit(100)
   if (error) return { error: error.message }
   return { data: data ?? [] }
 }
