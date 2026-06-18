@@ -17,6 +17,10 @@ export interface NotaVentaData {
   checkinId?: string
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 function formatCurrency(n: number) { return `S/ ${n.toFixed(2)}` }
 
 export function getWhatsAppMessage(data: NotaVentaData): string {
@@ -52,8 +56,9 @@ export function printNotaVenta(data: NotaVentaData) {
     ? (data.serie?.startsWith('F') ? 'FACTURA ELECTRÓNICA' : 'BOLETA ELECTRÓNICA')
     : 'COMPROBANTE DE PAGO'
 
+  const h = (s: string) => escapeHtml(s)
   const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
+<html><head><meta charset="utf-8"><title>${h(title)}</title>
 <style>
   @page { margin: 0; size: 80mm auto; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -81,25 +86,25 @@ export function printNotaVenta(data: NotaVentaData) {
   .footer .thanks { font-size: 10px; font-weight: 600; color: #333; margin-bottom: 1mm; }
 </style></head><body>
   <div class="header">
-    <div class="hotel">${data.hotelName || 'HControl'}</div>
-    ${data.hotelRuc ? `<div class="ruc">RUC: ${data.hotelRuc}</div>` : ''}
-    <div class="title">${title}</div>
+    <div class="hotel">${h(data.hotelName || 'HControl')}</div>
+    ${data.hotelRuc ? `<div class="ruc">RUC: ${h(data.hotelRuc)}</div>` : ''}
+    <div class="title">${h(title)}</div>
   </div>
   <div class="divider-thick"></div>
-  <div class="row"><span class="label">Huésped</span><span class="value">${data.guestName}</span></div>
-  ${data.guestDoc ? `<div class="row"><span class="label">Documento</span><span class="value">${data.guestDoc}</span></div>` : ''}
-  <div class="row"><span class="label">Habitación</span><span class="value">${data.roomNumber}</span></div>
+  <div class="row"><span class="label">Huésped</span><span class="value">${h(data.guestName)}</span></div>
+  ${data.guestDoc ? `<div class="row"><span class="label">Documento</span><span class="value">${h(data.guestDoc)}</span></div>` : ''}
+  <div class="row"><span class="label">Habitación</span><span class="value">${h(data.roomNumber)}</span></div>
   <div class="divider"></div>
-  <div class="row"><span class="label">Método de pago</span><span class="value">${(data.paymentMethod || 'cash').toUpperCase()}</span></div>
+  <div class="row"><span class="label">Método de pago</span><span class="value">${h((data.paymentMethod || 'cash').toUpperCase())}</span></div>
   <div class="divider-thick"></div>
   <div class="total-row"><span class="label">TOTAL</span><span class="value">${formatCurrency(data.total)}</span></div>
   <div class="footer">
     <div class="thanks">¡Gracias por su preferencia!</div>
-    ${new Date().toLocaleString('es-PE')}
+    ${h(new Date().toLocaleString('es-PE'))}
   </div>
 </body></html>`
 
-  const win = window.open('', '_blank', 'width=380,height=600,menubar=no,toolbar=no,location=no')
+  const win = window.open('', '_blank', 'noopener,noreferrer')
   if (!win) { alert('Permite ventanas emergentes para imprimir'); return }
   win.document.write(html)
   win.document.close()
