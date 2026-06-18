@@ -5,8 +5,11 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 import { revalidatePath } from 'next/cache'
 import { validateLogoFile, getLogoPath, getCacheBustedUrl } from '@/lib/storage/upload'
+import { mutationRateLimit } from '@/lib/rate-limit'
 
 export async function uploadLogo(hotelId: string, formData: FormData) {
+  const rl = await mutationRateLimit(`settings:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   await assertHotelAccess(supabase, hotelId)
 
@@ -53,6 +56,8 @@ export async function getRoomTypes(hotelId: string) {
 }
 
 export async function addRoomType(hotelId: string, name: string, label: string) {
+  const rl = await mutationRateLimit(`settings:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()
@@ -63,6 +68,8 @@ export async function addRoomType(hotelId: string, name: string, label: string) 
 }
 
 export async function removeRoomType(hotelId: string, name: string) {
+  const rl = await mutationRateLimit(`settings:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   await assertHotelAccess(supabase, hotelId)
   const svc = createServiceClient()

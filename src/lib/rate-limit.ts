@@ -4,54 +4,60 @@ import { Redis } from '@upstash/redis'
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
-let proxyLimiter: Ratelimit | null = null
-let checkinLimiter: Ratelimit | null = null
-let cashLimiter: Ratelimit | null = null
+let redis: Redis | null = null
 
-function getLimiter(key: string) {
-  if (!redisUrl || !redisToken) return null
-
-  const redis = new Redis({ url: redisUrl, token: redisToken })
-
-  if (key === 'proxy' && !proxyLimiter) {
-    proxyLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(300, '60 s'),
-      prefix: 'ratelimit:proxy',
-    })
+function getRedis() {
+  if (!redis && redisUrl && redisToken) {
+    redis = new Redis({ url: redisUrl, token: redisToken })
   }
-  if (key === 'checkin' && !checkinLimiter) {
-    checkinLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(30, '60 s'),
-      prefix: 'ratelimit:checkin',
-    })
-  }
-  if (key === 'cash' && !cashLimiter) {
-    cashLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(30, '60 s'),
-      prefix: 'ratelimit:cash',
-    })
-  }
+  return redis
+}
 
-  if (key === 'proxy') return proxyLimiter
-  if (key === 'checkin') return checkinLimiter
-  if (key === 'cash') return cashLimiter
-  return null
+const limiters = new Map<string, Ratelimit>()
+
+function getLimiter(prefix: string, limit: number, windowMs: number) {
+  const key = `${prefix}:${limit}:${windowMs}`
+  if (!limiters.has(key)) {
+    const r = getRedis()
+    if (!r) return null
+    limiters.set(
+      key,
+      new Ratelimit({
+        redis: r,
+        limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
+        prefix: `ratelimit:${prefix}`,
+      }),
+    )
+  }
+  return limiters.get(key)!
 }
 
 export async function rateLimit(
-  key: string,
+  identifier: string,
   limit: number,
   windowMs: number,
 ): Promise<{ allowed: boolean; remaining?: number; reset?: number }> {
-  const limiter = getLimiter(key)
+  const r = getRedis()
+  if (!r) return { allowed: true }
 
-  if (!limiter) {
-    return { allowed: true }
-  }
+  const limiter = new Ratelimit({
+    redis: r,
+    limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
+    prefix: 'ratelimit',
+  })
 
-  const { success, remaining, reset } = await limiter.limit(key)
+  const { success, remaining, reset } = await limiter.limit(identifier)
   return { allowed: success, remaining, reset }
+}
+
+export async function proxyRateLimit(identifier: string) {
+  return rateLimit(identifier, 300, 60_000)
+}
+
+export async function mutationRateLimit(identifier: string) {
+  return rateLimit(identifier, 30, 60_000)
+}
+
+export async function authRateLimit(identifier: string) {
+  return rateLimit(identifier, 10, 60_000)
 }

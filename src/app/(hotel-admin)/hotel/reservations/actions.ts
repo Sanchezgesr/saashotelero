@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
+import { mutationRateLimit } from '@/lib/rate-limit'
+import { createReservationSchema, parseAction } from '@/lib/validations'
 
 export async function createReservation(raw: {
   hotel_id: string
@@ -21,16 +23,22 @@ export async function createReservation(raw: {
     .from('profiles').select('hotel_id').eq('id', user.id).single()
   if (!profile || profile.hotel_id !== raw.hotel_id) throw new Error('Acceso denegado')
 
+  const rl = await mutationRateLimit(`reservation:${raw.hotel_id}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
+
+  const { error: validationError, data: validated } = parseAction(createReservationSchema, raw)
+  if (validationError || !validated) throw new Error(validationError || 'Datos inválidos')
+
   const svc = createServiceClient()
   const { error } = await svc.from('reservations').insert({
-    hotel_id: raw.hotel_id,
-    room_id: raw.room_id,
-    guest_id: raw.guest_id,
-    check_in_date: raw.check_in_date,
-    check_out_date: raw.check_out_date,
-    total_price: raw.total_price,
+    hotel_id: validated.hotel_id,
+    room_id: validated.room_id,
+    guest_id: validated.guest_id,
+    check_in_date: validated.check_in_date,
+    check_out_date: validated.check_out_date,
+    total_price: validated.total_price,
     status: 'confirmed',
-    notes: raw.notes || null,
+    notes: validated.notes || null,
   })
 
   if (error) throw new Error('Error al registrar reserva: ' + error.message)
@@ -76,6 +84,8 @@ export async function updateReservationStatus(reservationId: string, status: str
   const svc = createServiceClient()
   const { data: reservation } = await svc.from('reservations').select('hotel_id').eq('id', reservationId).single()
   if (!reservation) throw new Error('Reserva no encontrada')
+  const rl = await mutationRateLimit(`reservation:${reservation.hotel_id}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   await assertHotelAccess(supabase, reservation.hotel_id)
   const { error } = await svc.from('reservations').update({ status }).eq('id', reservationId)
@@ -86,6 +96,8 @@ export async function deleteReservation(reservationId: string) {
   const svc = createServiceClient()
   const { data: reservation } = await svc.from('reservations').select('hotel_id').eq('id', reservationId).single()
   if (!reservation) throw new Error('Reserva no encontrada')
+  const rl = await mutationRateLimit(`reservation:${reservation.hotel_id}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   await assertHotelAccess(supabase, reservation.hotel_id)
   const { error } = await svc.from('reservations').delete().eq('id', reservationId)

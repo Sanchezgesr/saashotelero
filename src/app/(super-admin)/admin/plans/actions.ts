@@ -7,6 +7,7 @@ import { logAction } from '@/lib/audit'
 import { syncHotelPlanStatus } from '@/lib/plan-check'
 import { calculateExpiry } from '@/lib/utils/plans'
 import type { PlanConfig } from '@/lib/utils/plans'
+import { mutationRateLimit } from '@/lib/rate-limit'
 
 export async function getPlans(): Promise<PlanConfig[]> {
   const supabase = createServiceClient()
@@ -15,6 +16,8 @@ export async function getPlans(): Promise<PlanConfig[]> {
 }
 
 export async function updateHotelPlan(hotelId: string, planName: string) {
+  const rl = await mutationRateLimit(`admin:plans:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const serviceSupabase = createServiceClient()
 
   const { data: plan } = await serviceSupabase

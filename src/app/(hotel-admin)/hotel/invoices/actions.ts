@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 import { emitirComprobante } from '@/lib/facturacion/lucode'
 import { revalidatePath } from 'next/cache'
+import { emitirComprobanteSchema, parseAction } from '@/lib/validations'
 
 export async function getPendingCheckins(hotelId: string) {
   const supabase = await createClient()
@@ -73,27 +74,31 @@ export async function emitirComprobanteAction(formData: FormData) {
   const clienteDenom = formData.get('cliente_denominacion') as string
   const clienteDireccion = formData.get('cliente_direccion') as string
 
+  const raw = { hotel_id: hotelId, checkin_id: checkinId, tipo, cliente_tipo_documento: clienteTipoDoc, cliente_numero_documento: clienteNumDoc, cliente_denominacion: clienteDenom, cliente_direccion: clienteDireccion }
+  const { error: validationError, data: validated } = parseAction(emitirComprobanteSchema, raw)
+  if (validationError || !validated) return { error: validationError || 'Datos inválidos' }
+
   const supabase = await createClient()
-  await assertHotelAccess(supabase, hotelId)
+  await assertHotelAccess(supabase, validated.hotel_id)
 
   const svc = createServiceClient()
 
-  const { data: hotel } = await svc.from('hotels').select('plan').eq('id', hotelId).single()
+  const { data: hotel } = await svc.from('hotels').select('plan').eq('id', validated.hotel_id).single()
   if (!hotel?.plan?.startsWith('pro')) return { error: 'Plan Básico no incluye facturación electrónica. Actualiza a Pro.' }
 
-  const config = await getFiscalConfig(hotelId)
+  const config = await getFiscalConfig(validated.hotel_id)
   if (!config?.enabled || !config.lucode_token) {
     return { error: 'Facturación electrónica no configurada. Configúrala en Ajustes.' }
   }
 
-  const serie = tipo === 'factura' ? config.serie_factura : config.serie_boleta
-  const lastNum = await getLastInvoiceNumber(hotelId, tipo, serie)
+  const serie = validated.tipo === 'factura' ? config.serie_factura : config.serie_boleta
+  const lastNum = await getLastInvoiceNumber(validated.hotel_id, validated.tipo, serie)
   const numero = (lastNum ?? 0) + 1
 
   const { data: checkin } = await svc
     .from('checkins')
     .select('*, guests(full_name, dni), rooms(number)')
-    .eq('id', checkinId)
+    .eq('id', validated.checkin_id)
     .single()
 
   if (!checkin) return { error: 'Check-in no encontrado' }
@@ -114,13 +119,13 @@ export async function emitirComprobanteAction(formData: FormData) {
 
   const result = await emitirComprobante({
     token: config.lucode_token,
-    tipo,
+    tipo: validated.tipo,
     serie,
     numero,
-    cliente_tipo_documento: clienteTipoDoc,
-    cliente_numero_documento: clienteNumDoc,
-    cliente_denominacion: clienteDenom,
-    cliente_direccion: clienteDireccion,
+    cliente_tipo_documento: validated.cliente_tipo_documento,
+    cliente_numero_documento: validated.cliente_numero_documento,
+    cliente_denominacion: validated.cliente_denominacion,
+    cliente_direccion: validated.cliente_direccion,
     items,
     total,
     sandbox: true,
@@ -131,15 +136,15 @@ export async function emitirComprobanteAction(formData: FormData) {
   }
 
   const { error: dbError } = await svc.from('invoices').insert({
-    hotel_id: hotelId,
-    checkin_id: checkinId,
-    tipo,
+    hotel_id: validated.hotel_id,
+    checkin_id: validated.checkin_id,
+    tipo: validated.tipo,
     serie,
     numero,
     monto: total,
-    cliente_tipo_documento: clienteTipoDoc,
-    cliente_numero_documento: clienteNumDoc,
-    cliente_denominacion: clienteDenom,
+    cliente_tipo_documento: validated.cliente_tipo_documento,
+    cliente_numero_documento: validated.cliente_numero_documento,
+    cliente_denominacion: validated.cliente_denominacion,
     estado: result.payload?.estado ?? 'pendiente',
     hash: result.payload?.hash,
     xml_url: result.payload?.xml,
@@ -155,7 +160,7 @@ export async function emitirComprobanteAction(formData: FormData) {
 
   return {
     success: true,
-    tipo,
+    tipo: validated.tipo,
     serie,
     numero,
     estado: result.payload?.estado,

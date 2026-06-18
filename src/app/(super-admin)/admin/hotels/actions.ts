@@ -5,8 +5,11 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { createHotelSchema, parseAction } from '@/lib/validations'
+import { mutationRateLimit } from '@/lib/rate-limit'
 
 export async function createHotel(formData: FormData) {
+  const rl = await mutationRateLimit('admin:hotels')
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
 
   const raw = {
@@ -51,6 +54,8 @@ export async function createHotel(formData: FormData) {
 }
 
 export async function updateHotelStatus(hotelId: string, status: 'active' | 'suspended') {
+  const rl = await mutationRateLimit(`admin:hotels:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   
   const { error } = await supabase
@@ -90,6 +95,9 @@ export async function updateHotelStatus(hotelId: string, status: 'active' | 'sus
       await adminClient.auth.admin.updateUserById(p.id, {
         ban_duration: isActive ? 'none' : '876000h',
       })
+      if (!isActive) {
+        await adminClient.auth.admin.signOut(p.id)
+      }
     }
   }
 
@@ -112,6 +120,8 @@ export async function updateHotelStatus(hotelId: string, status: 'active' | 'sus
 }
 
 export async function deleteHotel(hotelId: string) {
+  const rl = await mutationRateLimit(`admin:hotels:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -151,6 +161,8 @@ export async function deleteHotel(hotelId: string) {
 }
 
 export async function restoreHotel(hotelId: string) {
+  const rl = await mutationRateLimit(`admin:hotels:${hotelId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
 
   const { error } = await supabase

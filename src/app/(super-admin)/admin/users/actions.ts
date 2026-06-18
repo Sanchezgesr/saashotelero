@@ -4,8 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
+import { mutationRateLimit } from '@/lib/rate-limit'
 
 export async function toggleUserStatus(userId: string, currentStatus: boolean) {
+  const rl = await mutationRateLimit(`admin:users:${userId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -41,6 +44,8 @@ export async function toggleUserStatus(userId: string, currentStatus: boolean) {
 }
 
 export async function resetUserPassword(email: string) {
+  const rl = await mutationRateLimit(`admin:users:password:${email}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -56,6 +61,8 @@ export async function resetUserPassword(email: string) {
 }
 
 export async function deleteUser(userId: string) {
+  const rl = await mutationRateLimit(`admin:users:${userId}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
   const supabase = await createClient()
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

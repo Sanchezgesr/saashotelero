@@ -1,12 +1,20 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { setCsrfCookie, CSRF_COOKIE } from '@/lib/csrf'
+import { proxyRateLimit } from '@/lib/rate-limit'
 
 async function safeSignOut(supabase: ReturnType<typeof createServerClient>) {
   try { await supabase.auth.signOut() } catch { /* ignore */ }
 }
 
 export async function proxy(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? request.headers.get('x-real-ip')
+    ?? '127.0.0.1'
+  const rl = await proxyRateLimit(ip)
+  if (!rl.allowed) {
+    return new NextResponse('Demasiadas solicitudes', { status: 429 })
+  }
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

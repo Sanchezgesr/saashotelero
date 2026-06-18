@@ -40,6 +40,26 @@ export const cashMovementSchema = z.object({
   payment_method: z.enum(['cash', 'card', 'yape', 'plin']),
 })
 
+export const emitirComprobanteSchema = z.object({
+  hotel_id: z.string().uuid(),
+  checkin_id: z.string().uuid(),
+  tipo: z.enum(['boleta', 'factura']),
+  cliente_tipo_documento: z.enum(['1', '6'], { message: 'Tipo documento: 1=DNI, 6=RUC' }),
+  cliente_numero_documento: z.string().regex(/^\d{8,11}$/, 'Documento debe tener 8 u 11 dígitos'),
+  cliente_denominacion: z.string().min(2).max(100).trim(),
+  cliente_direccion: z.string().max(200).trim(),
+})
+
+export const createReservationSchema = z.object({
+  hotel_id: z.string().uuid(),
+  room_id: z.string().uuid(),
+  guest_id: z.string().uuid(),
+  check_in_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha formato YYYY-MM-DD'),
+  check_out_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha formato YYYY-MM-DD'),
+  total_price: z.number().positive().max(999999),
+  notes: z.string().max(500).optional(),
+})
+
 export function parseAction<T>(schema: z.ZodSchema<T>, data: unknown) {
   const result = schema.safeParse(data)
   if (!result.success) {

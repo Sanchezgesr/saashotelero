@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 import { revalidatePath } from 'next/cache'
+import { mutationRateLimit } from '@/lib/rate-limit'
 
 export async function getStaff(hotelId: string) {
   const supabase = await createClient()
@@ -30,6 +31,9 @@ export async function toggleStaffStatus(userId: string, isActive: boolean) {
     .from('profiles').select('hotel_id, role').eq('id', userId).single()
   if (!targetProfile) throw new Error('Usuario no encontrado')
 
+  const rl = await mutationRateLimit(`staff:${targetProfile.hotel_id}`)
+  if (!rl.allowed) throw new Error('Demasiadas solicitudes, intenta de nuevo en un minuto')
+
   if (callerProfile.role !== 'super_admin' &&
       (callerProfile.role !== 'hotel_admin' || callerProfile.hotel_id !== targetProfile.hotel_id)) {
     throw new Error('Acceso denegado')
@@ -40,6 +44,10 @@ export async function toggleStaffStatus(userId: string, isActive: boolean) {
     ban_duration: isActive ? 'none' : '876000h',
   })
   if (authError) throw new Error(authError.message)
+
+  if (!isActive) {
+    await svc.auth.admin.signOut(userId)
+  }
 
   const { error: profileError } = await svc
     .from('profiles')
