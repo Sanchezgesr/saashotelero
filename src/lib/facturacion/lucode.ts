@@ -90,13 +90,23 @@ export interface RucData {
   distrito: string
 }
 
-export async function consultarRuc(token: string, ruc: string, sandbox?: boolean): Promise<RucData | null> {
-  const base = sandbox ? BASE_SANDBOX : BASE_PROD
-  const res = await fetch(`${base}/ruc/${ruc}`, {
+export async function consultarRuc(token: string, ruc: string): Promise<RucData | null> {
+  const res = await fetch(`https://dev.apisunat.pe/api/v1/business/ruc/${ruc}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) return null
-  return res.json()
+  const json = await res.json()
+  if (!json.success) return null
+  return {
+    ruc: json.payload.ruc,
+    razon_social: json.payload.razon_social,
+    estado: json.payload.estado,
+    condicion: json.payload.condicion,
+    direccion: json.payload.direccion_fiscal,
+    departamento: json.payload.departamento,
+    provincia: json.payload.provincia,
+    distrito: json.payload.distrito,
+  }
 }
 
 export function getNextNumber(ultimoNumero: number | null): number {

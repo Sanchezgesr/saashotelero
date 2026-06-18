@@ -179,5 +179,5 @@ export async function consultarRucAction(hotelId: string, ruc: string) {
     .eq('hotel_id', hotelId)
     .single()
   if (!config?.lucode_token) return null
-  return consultarRuc(config.lucode_token, ruc, false)
+  return consultarRuc(config.lucode_token, ruc)
 }
