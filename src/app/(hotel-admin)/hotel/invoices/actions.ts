@@ -3,7 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
-import { emitirComprobante } from '@/lib/facturacion/lucode'
+import { emitirComprobante, consultarRuc } from '@/lib/facturacion/lucode'
 import { revalidatePath } from 'next/cache'
 import { emitirComprobanteSchema, parseAction } from '@/lib/validations'
 
@@ -167,4 +167,17 @@ export async function emitirComprobanteAction(formData: FormData) {
     estado: result.payload?.estado,
     pdfUrl: result.payload?.pdf.ticket,
   }
+}
+
+export async function consultarRucAction(hotelId: string, ruc: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+  const svc = createServiceClient()
+  const { data: config } = await svc
+    .from('hotel_fiscal_config')
+    .select('lucode_token')
+    .eq('hotel_id', hotelId)
+    .single()
+  if (!config?.lucode_token) return null
+  return consultarRuc(config.lucode_token, ruc, false)
 }

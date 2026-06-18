@@ -79,6 +79,26 @@ export async function consultarEstado(token: string, serie: string, numero: numb
   return res.json() as Promise<LucodeResponse>
 }
 
+export interface RucData {
+  ruc: string
+  razon_social: string
+  estado: string
+  condicion: string
+  direccion: string
+  departamento: string
+  provincia: string
+  distrito: string
+}
+
+export async function consultarRuc(token: string, ruc: string, sandbox?: boolean): Promise<RucData | null> {
+  const base = sandbox ? BASE_SANDBOX : BASE_PROD
+  const res = await fetch(`${base}/ruc/${ruc}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) return null
+  return res.json()
+}
+
 export function getNextNumber(ultimoNumero: number | null): number {
   return (ultimoNumero ?? 0) + 1
 }

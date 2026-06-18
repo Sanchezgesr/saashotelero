@@ -7,7 +7,7 @@ import { Search, Receipt, FileText, ExternalLink, Printer, ArrowLeft, X } from '
 import { fmtDateTime } from '@/lib/utils/dates'
 import { toast } from 'sonner'
 import { printNotaVenta, getWhatsAppLink } from '@/components/print/NotaVentaPrint'
-import { emitirComprobanteAction, getPendingCheckins, getFiscalConfig, getHotelName } from '@/app/(hotel-admin)/hotel/invoices/actions'
+import { emitirComprobanteAction, consultarRucAction, getPendingCheckins, getFiscalConfig, getHotelName } from '@/app/(hotel-admin)/hotel/invoices/actions'
 
 type Tab = 'emitir' | 'historial'
 
@@ -349,7 +349,18 @@ export default function InvoicesPage() {
                   <div>
                     <label className="block text-sm font-medium mb-1">RUC *</label>
                     <input id="fe-numero-doc" placeholder="20123456789"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm"
+                      onBlur={async (e) => {
+                        const ruc = e.target.value.replace(/\D/g, '')
+                        if (ruc.length !== 11) return
+                        const data = await consultarRucAction(profile?.hotel_id!, ruc)
+                        if (data) {
+                          const denom = document.getElementById('fe-denominacion') as HTMLInputElement
+                          const dir = document.getElementById('fe-direccion') as HTMLInputElement
+                          if (denom) denom.value = data.razon_social
+                          if (dir) dir.value = data.direccion
+                        }
+                      }} />
                     <label className="block text-sm font-medium mt-3 mb-1">Razón Social *</label>
                     <input id="fe-denominacion" placeholder="..."
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
