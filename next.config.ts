@@ -9,10 +9,6 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-    const supabaseWss = supabaseUrl.replace('https://', 'wss://')
-    const supabaseStorage = `${supabaseUrl}/storage/v1/object/public/`
-
     return [
       {
         source: '/(.*)',
@@ -25,22 +21,6 @@ const nextConfig: NextConfig = {
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              `connect-src 'self' ${supabaseUrl} ${supabaseWss}`,
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
-              `img-src 'self' data: blob: ${supabaseStorage}`,
-              "font-src 'self' data:",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'none'",
-              "worker-src 'self' blob:",
-              "manifest-src 'self'",
-            ].join('; '),
           },
         ],
       },

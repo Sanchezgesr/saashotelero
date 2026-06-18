@@ -3,6 +3,29 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { setCsrfCookie, CSRF_COOKIE } from '@/lib/csrf'
 import { proxyRateLimit } from '@/lib/rate-limit'
 
+function buildCSP(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://lcuojjmgkgzfferoollp.supabase.co'
+  const wss = url.replace('https://', 'wss://')
+  const storage = `${url}/storage/v1/object/public/`
+  return [
+    "default-src 'self'",
+    `connect-src 'self' ${url} ${wss}`,
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' data: blob: ${storage}`,
+    "font-src 'self' data:",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+  ].join('; ')
+}
+
+function setSecurityHeaders(resp: NextResponse) {
+  resp.headers.set('Content-Security-Policy', buildCSP())
+}
+
 async function safeSignOut(supabase: ReturnType<typeof createServerClient>) {
   try { await supabase.auth.signOut() } catch { /* ignore */ }
 }
@@ -13,8 +36,11 @@ export async function proxy(request: NextRequest) {
     ?? '127.0.0.1'
   const rl = await proxyRateLimit(ip)
   if (!rl.allowed) {
-    return new NextResponse('Demasiadas solicitudes', { status: 429 })
+    const resp = new NextResponse('Demasiadas solicitudes', { status: 429 })
+    setSecurityHeaders(resp)
+    return resp
   }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -35,8 +61,11 @@ export async function proxy(request: NextRequest) {
   )
 
   const { pathname } = request.nextUrl
-  const publicRoutes = ['/login', '/auth/callback']
-  if (publicRoutes.includes(pathname)) return supabaseResponse
+  const publicRoutes = ['/login', '/auth/callback', '/api/health']
+  if (publicRoutes.includes(pathname)) {
+    setSecurityHeaders(supabaseResponse)
+    return supabaseResponse
+  }
 
   let session
   try {
@@ -49,6 +78,7 @@ export async function proxy(request: NextRequest) {
     const resp = NextResponse.redirect(new URL('/login', request.url))
     resp.cookies.delete('sb-lcuojjmgkgzfferoollp-auth-token')
     resp.cookies.delete('sb-lcuojjmgkgzfferoollp-auth-token-code-verifier')
+    setSecurityHeaders(resp)
     return resp
   }
 
@@ -60,7 +90,9 @@ export async function proxy(request: NextRequest) {
 
   if (!profile || !profile.is_active) {
     await safeSignOut(supabase)
-    return NextResponse.redirect(new URL('/login', request.url))
+    const resp = NextResponse.redirect(new URL('/login', request.url))
+    setSecurityHeaders(resp)
+    return resp
   }
 
   if (profile.hotel_id) {
@@ -68,7 +100,9 @@ export async function proxy(request: NextRequest) {
       .from('hotels').select('status').eq('id', profile.hotel_id).single()
     if (!hotel || hotel.status === 'suspended') {
       await safeSignOut(supabase)
-      return NextResponse.redirect(new URL('/login', request.url))
+      const resp = NextResponse.redirect(new URL('/login', request.url))
+      setSecurityHeaders(resp)
+      return resp
     }
   }
 
@@ -78,11 +112,17 @@ export async function proxy(request: NextRequest) {
   }
 
   if (profile.role === 'super_admin') {
-    if (pathname.startsWith('/hotel') || pathname.startsWith('/recepcion'))
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    if (pathname.startsWith('/hotel') || pathname.startsWith('/recepcion')) {
+      const resp = NextResponse.redirect(new URL('/admin/dashboard', request.url))
+      setSecurityHeaders(resp)
+      return resp
+    }
   } else {
-    if (pathname.startsWith('/admin'))
-      return NextResponse.redirect(new URL('/hotel/dashboard', request.url))
+    if (pathname.startsWith('/admin')) {
+      const resp = NextResponse.redirect(new URL('/hotel/dashboard', request.url))
+      setSecurityHeaders(resp)
+      return resp
+    }
   }
 
   if (!request.cookies.get(CSRF_COOKIE)) {
@@ -91,6 +131,7 @@ export async function proxy(request: NextRequest) {
     supabaseResponse.headers.set('Set-Cookie', existing ? [existing, csrfCookie].join(', ') : csrfCookie)
   }
 
+  setSecurityHeaders(supabaseResponse)
   return supabaseResponse
 }
 
