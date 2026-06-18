@@ -1,1 +1,1 @@
-export type PlanId = 'prueba' | 'mensual' | 'trimestral' | 'semestral' | 'anual'
+export type PlanId = string

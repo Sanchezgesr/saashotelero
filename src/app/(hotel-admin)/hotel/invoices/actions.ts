@@ -1,22 +1,33 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { createClient } from '@/lib/supabase/server'
 import { emitirComprobante } from '@/lib/facturacion/lucode'
+import { revalidatePath } from 'next/cache'
 
-export async function getHotelPlan(hotelId: string) {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('hotels')
-    .select('name, plan')
-    .eq('id', hotelId)
-    .single()
-  return data
+export async function getPendingCheckins(hotelId: string) {
+  const svc = createServiceClient()
+  const { data: invoiceRows } = await svc
+    .from('invoices')
+    .select('checkin_id')
+    .eq('hotel_id', hotelId)
+  const excludeIds = invoiceRows?.map(i => i.checkin_id).filter(Boolean) ?? []
+  let query = svc
+    .from('checkins')
+    .select('*, guests!inner(full_name, dni, phone), rooms!inner(number, type, price_per_night)')
+    .eq('hotel_id', hotelId)
+    .eq('status', 'active')
+    .eq('payment_status', 'paid')
+  if (excludeIds.length > 0) {
+    query = query.not('id', 'in', `(${excludeIds.join(',')})`)
+  }
+  const { data } = await query.order('check_in_at', { ascending: false })
+  return data ?? []
 }
 
 export async function getFiscalConfig(hotelId: string) {
-  const supabase = createServiceClient()
-  const { data } = await supabase
+  const svc = createServiceClient()
+  const { data } = await svc
     .from('hotel_fiscal_config')
     .select('*')
     .eq('hotel_id', hotelId)
@@ -24,9 +35,15 @@ export async function getFiscalConfig(hotelId: string) {
   return data
 }
 
-export async function getLastInvoiceNumber(hotelId: string, tipo: string, serie: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+export async function getHotelName(hotelId: string) {
+  const svc = createServiceClient()
+  const { data } = await svc.from('hotels').select('name').eq('id', hotelId).single()
+  return data?.name ?? ''
+}
+
+async function getLastInvoiceNumber(hotelId: string, tipo: string, serie: string) {
+  const svc = createServiceClient()
+  const { data } = await svc
     .from('invoices')
     .select('numero')
     .eq('hotel_id', hotelId)
@@ -48,10 +65,10 @@ export async function emitirComprobanteAction(formData: FormData) {
   const clienteDireccion = formData.get('cliente_direccion') as string
 
   const svc = createServiceClient()
+
   const { data: hotel } = await svc.from('hotels').select('plan').eq('id', hotelId).single()
   if (!hotel?.plan?.startsWith('pro')) return { error: 'Plan Básico no incluye facturación electrónica. Actualiza a Pro.' }
 
-  const supabase = await createClient()
   const config = await getFiscalConfig(hotelId)
   if (!config?.enabled || !config.lucode_token) {
     return { error: 'Facturación electrónica no configurada. Configúrala en Ajustes.' }
@@ -61,7 +78,7 @@ export async function emitirComprobanteAction(formData: FormData) {
   const lastNum = await getLastInvoiceNumber(hotelId, tipo, serie)
   const numero = (lastNum ?? 0) + 1
 
-  const { data: checkin } = await supabase
+  const { data: checkin } = await svc
     .from('checkins')
     .select('*, guests(full_name, dni), rooms(number)')
     .eq('id', checkinId)
@@ -88,7 +105,7 @@ export async function emitirComprobanteAction(formData: FormData) {
     tipo,
     serie,
     numero,
-    cliente_tipo_documento: tipo === 'factura' ? '6' : '1',
+    cliente_tipo_documento: clienteTipoDoc,
     cliente_numero_documento: clienteNumDoc,
     cliente_denominacion: clienteDenom,
     cliente_direccion: clienteDireccion,
@@ -101,7 +118,7 @@ export async function emitirComprobanteAction(formData: FormData) {
     return { error: result.message }
   }
 
-  const { error: dbError } = await supabase.from('invoices').insert({
+  const { error: dbError } = await svc.from('invoices').insert({
     hotel_id: hotelId,
     checkin_id: checkinId,
     tipo,
@@ -121,6 +138,8 @@ export async function emitirComprobanteAction(formData: FormData) {
   if (dbError) {
     return { error: 'Comprobante emitido pero error al guardar: ' + dbError.message }
   }
+
+  revalidatePath('/hotel/invoices')
 
   return {
     success: true,

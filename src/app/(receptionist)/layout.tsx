@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { Home, LogIn, LogOut, BedDouble, Users, Wallet, Building2 } from 'lucide-react'
+import { Home, LogIn, LogOut, BedDouble, Users, Wallet, Building2, FileText } from 'lucide-react'
 import { signOut } from '@/lib/supabase/actions'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -19,6 +19,7 @@ const menuItems = [
   { label: 'Habitaciones', icon: BedDouble, href: '/recepcion/rooms' },
   { label: 'Clientes',     icon: Users,     href: '/recepcion/guests' },
   { label: 'Caja',         icon: Wallet,    href: '/recepcion/cash' },
+  { label: 'Comprobantes', icon: FileText,  href: '/hotel/invoices' },
 ]
 
 function Sidebar() {
@@ -129,6 +130,7 @@ function BottomNav() {
     { label: 'Habitaciones', icon: BedDouble, href: '/recepcion/rooms' },
     { label: 'Clientes',     icon: Users,     href: '/recepcion/guests' },
     { label: 'Caja',         icon: Wallet,    href: '/recepcion/cash' },
+    { label: 'Comp.',        icon: FileText,  href: '/hotel/invoices' },
   ]
 
   return (

@@ -45,7 +45,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg focus:text-sm focus:font-bold">
+          Saltar al contenido principal
+        </a>
+        <div id="main-content" className="flex-1 flex flex-col">
+          {children}
+        </div>
         <Analytics />
         <PWARegister />
         <SentryClientInit />

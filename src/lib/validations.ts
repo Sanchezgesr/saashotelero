@@ -19,7 +19,7 @@ export const createHotelSchema = z.object({
   address: z.string().max(200).optional().or(z.literal('')),
   city:    z.string().max(100).optional().or(z.literal('')),
   phone:   z.string().max(20).optional().or(z.literal('')),
-  plan:    z.enum(['prueba', 'mensual', 'trimestral', 'semestral', 'anual']),
+  plan:    z.enum(['basico_mensual', 'basico_trimestral', 'basico_semestral', 'basico_anual', 'pro_mensual', 'pro_trimestral', 'pro_semestral', 'pro_anual']),
 })
 
 export const createGuestSchema = z.object({

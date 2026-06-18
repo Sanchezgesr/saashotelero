@@ -15,7 +15,7 @@ export async function createHotel(formData: FormData) {
     address: formData.get('address'),
     city:    formData.get('city'),
     phone:   formData.get('phone'),
-    plan:    formData.get('plan') || 'mensual',
+    plan:    formData.get('plan') || 'basico_mensual',
   }
 
   const { error: validationError, data: hotelData } = parseAction(createHotelSchema, raw)

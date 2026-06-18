@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Search, ArrowRight, ArrowLeft, Check, UserPlus, Printer } from 'lucide-react'
 import { toast } from 'sonner'
-import { performCheckin, createGuest, getAvailableRooms } from './actions'
+import { performCheckin, createGuest, getAvailableRooms, getHotelPlan } from './actions'
 import { useRouter } from 'next/navigation'
 import { fmtDateTime } from '@/lib/utils/dates'
 import { printNotaVenta } from '@/components/print/NotaVentaPrint'
@@ -20,6 +20,9 @@ export default function CheckinPage() {
   const [room, setRoom] = useState<any>(null)
   const [notes, setNotes] = useState('')
   const [dni, setDni] = useState('')
+  const [newGuestName, setNewGuestName] = useState('')
+  const [newGuestPhone, setNewGuestPhone] = useState('')
+  const [newGuestEmail, setNewGuestEmail] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [availableRooms, setAvailableRooms] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -29,7 +32,7 @@ export default function CheckinPage() {
 
   useEffect(() => {
     if (!profile?.hotel_id) return
-    createClient().from('hotels').select('name, plan').eq('id', profile.hotel_id).single().then(({ data }) => {
+    getHotelPlan(profile.hotel_id).then((data) => {
       if (data) setHotel(data)
     })
   }, [profile?.hotel_id])
@@ -61,11 +64,13 @@ export default function CheckinPage() {
   }
 
   const handleNewGuest = async () => {
-    if (!profile?.hotel_id) return
+    if (!profile?.hotel_id || !newGuestName || !newGuestPhone) return
     const g = await createGuest({
       hotel_id: profile.hotel_id,
-      full_name: dni,
+      full_name: newGuestName,
       dni,
+      phone: newGuestPhone,
+      email: newGuestEmail || undefined,
     })
     setGuest(g)
     loadRooms()
@@ -122,9 +127,9 @@ export default function CheckinPage() {
       {step === 'guest' && (
         <div className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Buscar por DNI o nombre</label>
+            <label htmlFor="search-dni" className="block text-sm font-medium mb-2">Buscar por DNI o nombre</label>
             <div className="flex gap-2">
-              <input value={dni} onChange={(e) => setDni(e.target.value)}
+              <input id="search-dni" value={dni} onChange={(e) => setDni(e.target.value)}
                 placeholder="12345678"
                 className="flex-1 border border-border rounded-lg px-4 py-3 text-base min-h-[48px]" />
               <button onClick={handleSearch} disabled={loading}
@@ -147,11 +152,21 @@ export default function CheckinPage() {
           )}
 
           {searchResults.length === 0 && dni && !loading && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-3">Cliente no encontrado</p>
+            <div className="space-y-3 border-t border-border pt-4">
+              <p className="text-sm font-medium">Registrar nuevo cliente</p>
+              <input value={newGuestName} onChange={(e) => setNewGuestName(e.target.value)}
+                placeholder="Nombre completo *"
+                className="w-full border border-border rounded-lg px-4 py-3 text-base min-h-[48px]" />
+              <input value={newGuestPhone} onChange={(e) => setNewGuestPhone(e.target.value)}
+                placeholder="Teléfono *"
+                className="w-full border border-border rounded-lg px-4 py-3 text-base min-h-[48px]" />
+              <input value={newGuestEmail} onChange={(e) => setNewGuestEmail(e.target.value)}
+                placeholder="Email (opcional)"
+                className="w-full border border-border rounded-lg px-4 py-3 text-base min-h-[48px]" />
               <button onClick={handleNewGuest}
-                className="flex items-center gap-2 bg-orange-500 text-white px-4 py-3 rounded-lg text-sm font-medium min-h-[48px] hover:opacity-90 w-full justify-center">
-                <UserPlus size={18} /> Registrar "{dni}" como nuevo cliente
+                className="flex items-center gap-2 bg-orange-500 text-white px-4 py-3 rounded-lg text-sm font-medium min-h-[48px] hover:opacity-90 w-full justify-center disabled:opacity-50"
+                disabled={!newGuestName || !newGuestPhone}>
+                <UserPlus size={18} /> Registrar y continuar
               </button>
             </div>
           )}
@@ -196,8 +211,8 @@ export default function CheckinPage() {
             <p><span className="text-muted-foreground">Entrada:</span> {fmtDateTime(new Date())}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Notas</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            <label htmlFor="checkin-notes" className="block text-sm font-medium mb-1">Notas</label>
+            <textarea id="checkin-notes" value={notes} onChange={(e) => setNotes(e.target.value)}
               className="w-full border border-border rounded-lg px-4 py-3 text-base min-h-[48px]" rows={2} />
           </div>
           <div className="flex gap-3">

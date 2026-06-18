@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { assertHotelAccess } from '@/lib/supabase/auth-guards'
 import { normalizeRoomType } from '@/lib/supabase/checkin-actions'
@@ -9,11 +10,21 @@ import { rateLimit } from '@/lib/rate-limit'
 import { logAction } from '@/lib/audit'
 import { z } from 'zod'
 
+export async function getHotelPlan(hotelId: string) {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('hotels')
+    .select('name, plan')
+    .eq('id', hotelId)
+    .single()
+  return data
+}
+
 const createGuestSchema = z.object({
   hotel_id:    z.string().uuid(),
   full_name:   z.string().min(2).max(100).trim(),
   dni:         z.string().regex(/^\d{8}$/, 'DNI debe tener 8 dígitos'),
-  phone:       z.string().max(20).optional().or(z.literal('')),
+  phone:       z.string().min(7, 'Teléfono requerido').max(20),
   email:       z.string().email().optional().or(z.literal('')),
   nationality: z.string().max(50).optional().or(z.literal('')),
 })
@@ -27,7 +38,7 @@ const checkinSchema = z.object({
 })
 
 export async function createGuest(data: {
-  hotel_id: string; full_name: string; dni: string; phone?: string; email?: string; nationality?: string
+  hotel_id: string; full_name: string; dni: string; phone: string; email?: string; nationality?: string
 }) {
   const { error: validationError, data: validated } = parseAction(createGuestSchema, data)
   if (validationError || !validated) throw new Error(validationError || 'Datos inválidos')

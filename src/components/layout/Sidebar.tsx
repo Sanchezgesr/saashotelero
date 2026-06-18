@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, BedDouble, Calendar, Users,
   LogIn, Wallet, BarChart3, UserCog, Settings,
-  LogOut, Building2, Menu, X
+  LogOut, Building2, Menu, X, FileText
 } from 'lucide-react'
 import { signOut } from '@/lib/supabase/actions'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +20,7 @@ const menuItems = [
   { label: 'Clientes',     icon: Users,           href: '/hotel/guests' },
   { label: 'Check-in/out', icon: LogIn,           href: '/hotel/checkin' },
   { label: 'Caja',         icon: Wallet,          href: '/hotel/cash' },
+  { label: 'Comprobantes', icon: FileText,        href: '/hotel/invoices' },
   { label: 'Reportes',     icon: BarChart3,       href: '/hotel/reports' },
   { label: 'Empleados',    icon: UserCog,         href: '/hotel/staff' },
   { label: 'Configuración',icon: Settings,        href: '/hotel/settings' },
@@ -70,12 +71,13 @@ export function Sidebar() {
           </div>
         </div>
         <div className="mx-4 h-px bg-white/5" />
-        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5" aria-label="Navegación principal">
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (
               <Link key={item.href} href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                   isActive
@@ -108,13 +110,14 @@ export function Sidebar() {
 
       {/* Bottom nav - mobile only, scrollable with fade hint */}
       <div className="fixed bottom-0 left-0 right-0 md:hidden z-50">
-        <nav className="overflow-x-auto bg-white border-t border-border scrollbar-hide">
+        <nav className="overflow-x-auto bg-white border-t border-border scrollbar-hide" aria-label="Navegación móvil">
           <div className="flex items-center min-w-max px-1 py-1.5 gap-0.5">
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               return (
                 <Link key={item.href} href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] whitespace-nowrap transition-colors shrink-0',
                     isActive ? 'text-primary font-semibold' : 'text-muted-foreground'

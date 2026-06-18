@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS hotels (
   phone       TEXT,
   logo_url    TEXT,
   status      TEXT DEFAULT 'active',   -- active | suspended | deleted
-  plan        TEXT DEFAULT 'mensual',  -- prueba | mensual | trimestral | semestral | anual
+  plan        TEXT DEFAULT 'basico_mensual',
   plan_expires_at TIMESTAMPTZ,
   theme       TEXT DEFAULT 'default',   -- default | ocean | emerald | sunset | midnight | rose | amber | violet
   created_at  TIMESTAMPTZ DEFAULT NOW()
@@ -327,7 +327,7 @@ BEGIN
     ALTER TABLE hotels ADD CONSTRAINT hotels_status_check CHECK (status IN ('active','suspended','deleted')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'hotels_plan_check') THEN
-    ALTER TABLE hotels ADD CONSTRAINT hotels_plan_check CHECK (plan IN ('prueba','mensual','trimestral','semestral','anual')) NOT VALID;
+    ALTER TABLE hotels ADD CONSTRAINT hotels_plan_check CHECK (plan IN ('basico_mensual','basico_trimestral','basico_semestral','basico_anual','pro_mensual','pro_trimestral','pro_semestral','pro_anual')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'hotels_theme_check') THEN
     ALTER TABLE hotels ADD CONSTRAINT hotels_theme_check CHECK (theme IN ('default','ocean','emerald','sunset','midnight','rose','amber','violet')) NOT VALID;
@@ -688,8 +688,14 @@ CREATE TABLE IF NOT EXISTS plans (
 );
 
 INSERT INTO plans (name, label, duration_days, price, description, sort_order) VALUES
-  ('basico', 'Básico', 30, 45, 'Sin facturación electrónica', 1),
-  ('pro', 'Pro', 30, 65, 'Con facturación electrónica SUNAT', 2)
+  ('basico_mensual',    'Básico Mensual',     30,  45,  'Sin facturación electrónica. Pago mensual.',        1),
+  ('basico_trimestral', 'Básico Trimestral',  90,  120, 'Sin facturación electrónica. Ahorra ~11%.',          2),
+  ('basico_semestral',  'Básico Semestral',   180, 225, 'Sin facturación electrónica. Ahorra ~17%.',          3),
+  ('basico_anual',      'Básico Anual',       365, 430, 'Sin facturación electrónica. Ahorra ~20%.',          4),
+  ('pro_mensual',       'Pro Mensual',        30,  65,  'Con facturación electrónica SUNAT. Pago mensual.',   5),
+  ('pro_trimestral',    'Pro Trimestral',     90,  175, 'Con facturación electrónica SUNAT. Ahorra ~10%.',    6),
+  ('pro_semestral',     'Pro Semestral',      180, 330, 'Con facturación electrónica SUNAT. Ahorra ~15%.',    7),
+  ('pro_anual',         'Pro Anual',          365, 620, 'Con facturación electrónica SUNAT. Ahorra ~20%.',    8)
 ON CONFLICT (name) DO UPDATE SET
   label = EXCLUDED.label,
   duration_days = EXCLUDED.duration_days,

@@ -9,12 +9,17 @@ import type { PlanConfig } from '@/lib/utils/plans'
 import type { Hotel } from '@/types'
 import { fmtDate } from '@/lib/utils/dates'
 
-const planIcons: Record<string, typeof Shield> = {
-  basico: DollarSign, pro: Zap,
-}
-
-const planColors: Record<string, string> = {
-  basico: 'from-gray-400 to-gray-500', pro: 'from-blue-400 to-blue-600',
+function getPlanStyle(name: string) {
+  const isPro = name.startsWith('pro')
+  return {
+    icon: isPro ? Zap : DollarSign,
+    gradient: isPro
+      ? 'from-indigo-500 via-purple-500 to-pink-500'
+      : 'from-emerald-400 via-emerald-500 to-teal-600',
+    badge: isPro ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    shadow: isPro ? 'shadow-purple-200/50' : 'shadow-emerald-200/50',
+    border: isPro ? 'border-indigo-200 hover:border-indigo-400' : 'border-emerald-200 hover:border-emerald-400',
+  }
 }
 
 export default function PlansPage() {
@@ -124,7 +129,7 @@ export default function PlansPage() {
                         <div className="text-xs text-gray-500">ID: {hotel.id.substring(0, 8)}...</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${planColors[hotel.plan as string] || 'from-gray-400 to-gray-500'}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${getPlanStyle(hotel.plan || '').badge} border`}>
                           {plan?.label ?? hotel.plan ?? 'Sin plan'}
                         </span>
                       </td>
@@ -171,29 +176,32 @@ export default function PlansPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
               {plans.map((plan) => {
-                const Icon = planIcons[plan.name] || Shield
+                const style = getPlanStyle(plan.name)
+                const Icon = style.icon
                 const isCurrent = selectedHotel.plan === plan.name
+                const isPro = plan.name.startsWith('pro')
                 return (
                   <button key={plan.name} onClick={() => handleSelectPlan(plan.name)}
-                    className={`relative text-left p-5 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${
-                      isCurrent ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-primary/40'
-                    }`}>
+                    className={`relative text-left p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer group
+                      ${isCurrent
+                        ? `border-${isPro ? 'indigo' : 'emerald'}-400 bg-gradient-to-br ${isPro ? 'from-indigo-50 to-purple-50' : 'from-emerald-50 to-teal-50'} shadow-lg`
+                        : 'border-gray-200 bg-white hover:shadow-xl hover:-translate-y-0.5'
+                      } ${style.shadow}`}>
                     {isCurrent && (
-                      <span className="absolute top-2 right-2 text-xs font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full">Actual</span>
+                      <span className={`absolute top-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full ${style.badge} border`}>Actual</span>
                     )}
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${planColors[plan.name] || 'from-gray-400 to-gray-500'} flex items-center justify-center mb-3`}>
-                      <Icon className="w-5 h-5 text-white" />
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${style.gradient} flex items-center justify-center mb-4 shadow-lg ${style.shadow} group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-base font-bold text-gray-900">{plan.label}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{plan.description}</div>
-                    <div className="mt-3 flex items-baseline gap-1">
-                      {plan.price === 0 ? (
-                        <span className="text-2xl font-bold text-gray-900">Gratis</span>
-                      ) : (
-                        <><span className="text-2xl font-bold text-gray-900">S/{plan.price}</span></>
-                      )}
+                    <div className="text-lg font-extrabold text-gray-900 tracking-tight">{plan.label}</div>
+                    <div className="text-xs text-gray-500 mt-1 leading-relaxed">{plan.description}</div>
+                    <div className="mt-4 flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-gray-900">S/{plan.price}</span>
+                      <span className="text-xs text-gray-400 ml-1">
+                        /{plan.duration_days === 30 ? 'mes' : plan.duration_days === 90 ? 'trimestre' : plan.duration_days === 180 ? 'semestre' : 'año'}
+                      </span>
                     </div>
                   </button>
                 )
