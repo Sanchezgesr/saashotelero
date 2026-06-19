@@ -383,7 +383,9 @@ export default function InvoicesPage() {
                     <label className="block text-sm font-medium mt-3 mb-1">Razón Social *</label>
                     <input id="fe-denominacion" placeholder="..."
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
-                    <label className="block text-sm font-medium mt-3 mb-1">Dirección (opcional)</label>
+                    <label className="block text-sm font-medium mt-3 mb-1">
+                      Dirección {invoiceModal.tipo === 'factura' ? '*' : '(opcional)'}
+                    </label>
                     <input id="fe-direccion" placeholder="..."
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
                   </div>

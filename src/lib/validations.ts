@@ -45,10 +45,18 @@ export const emitirComprobanteSchema = z.object({
   checkin_id: z.string().uuid(),
   tipo: z.enum(['boleta', 'factura']),
   cliente_tipo_documento: z.enum(['1', '6'], { message: 'Tipo documento: 1=DNI, 6=RUC' }),
-  cliente_numero_documento: z.string().regex(/^\d{8,11}$/, 'Documento debe tener 8 u 11 dígitos'),
+  cliente_numero_documento: z.string(),
   cliente_denominacion: z.string().min(1).max(100).trim(),
   cliente_direccion: z.string().max(200).trim(),
-})
+}).refine(data => {
+  if (data.cliente_tipo_documento === '1') return /^\d{8}$/.test(data.cliente_numero_documento)
+  if (data.cliente_tipo_documento === '6') return /^\d{11}$/.test(data.cliente_numero_documento)
+  return false
+}, { message: 'Documento debe tener 8 dígitos (DNI) u 11 dígitos (RUC)', path: ['cliente_numero_documento'] })
+.refine(data => {
+  if (data.tipo === 'factura' && !data.cliente_direccion) return false
+  return true
+}, { message: 'Dirección es obligatoria para Factura', path: ['cliente_direccion'] })
 
 export const createReservationSchema = z.object({
   hotel_id: z.string().uuid(),
