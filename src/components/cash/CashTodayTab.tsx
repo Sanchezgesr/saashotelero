@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
+import { usePagination } from '@/hooks/usePagination'
 import { AlertTriangle, Plus, Lock, Download, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { localDate, tzOffset, fmtTime, fmtDate } from '@/lib/utils/dates'
@@ -14,12 +15,15 @@ import { CashForm } from '@/components/cash/CashForm'
 import { CashSummaryCards } from '@/components/cash/CashSummaryCards'
 import { CashMovementsTable } from '@/components/cash/CashMovementsTable'
 import { CashClosureModal } from '@/components/cash/CashClosureModal'
+import { Pagination } from '@/components/Pagination'
 
 export function CashTodayTab() {
   const { profile } = useUser()
   const supabase = createClient()
+  const pagination = usePagination({ itemsPerPage: 25 })
 
   const [movements, setMovements] = useState<CashMovement[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [todayClosures, setTodayClosures] = useState<CashClosure[]>([])
   const [summary, setSummary] = useState<CashSummary>({ totalIncome: 0, totalExpense: 0, balance: 0, byCash: 0, byCard: 0, byYape: 0, byPlin: 0 })
   const [showForm, setShowForm] = useState(false)
@@ -27,9 +31,10 @@ export function CashTodayTab() {
   const [closureNotes, setClosureNotes] = useState('')
   const [selectedDate, setSelectedDate] = useState(localDate())
 
-  const fetchData = async (date?: string) => {
+  const fetchData = useCallback(async (date?: string, page?: number) => {
     if (!profile?.hotel_id) return
     const day = date ?? selectedDate
+    const p = page ?? pagination.page
     const nd = new Date(day + 'T00:00:00')
     nd.setDate(nd.getDate() + 1)
     const nextDay = localDate(nd)
@@ -44,17 +49,37 @@ export function CashTodayTab() {
 
     const lastClosureAt = lastClosures?.[0]?.closed_at
 
-    let query = supabase
+    const countQuery = supabase
+      .from('cash_movements')
+      .select('*', { count: 'exact', head: true })
+      .eq('hotel_id', profile.hotel_id)
+      .gte('created_at', dayStart)
+      .lt('created_at', dayEnd)
+
+    if (lastClosureAt) {
+      countQuery.gte('created_at', lastClosureAt)
+    }
+
+    const { count } = await countQuery
+    setTotalCount(count ?? 0)
+
+    const from = (p - 1) * pagination.itemsPerPage
+    const to = from + pagination.itemsPerPage - 1
+
+    const dataQuery = supabase
       .from('cash_movements').select('*, profiles(full_name)')
       .eq('hotel_id', profile.hotel_id)
       .gte('created_at', dayStart)
       .lt('created_at', dayEnd)
 
     if (lastClosureAt) {
-      query = query.gte('created_at', lastClosureAt)
+      dataQuery.gte('created_at', lastClosureAt)
     }
 
-    const { data: m } = await query.order('created_at', { ascending: false })
+    const { data: m } = await dataQuery
+      .order('created_at', { ascending: false })
+      .range(from, to)
+
     const list = (m ?? []) as CashMovement[]
     setMovements(list)
     setSummary(calcSummary(list))
@@ -64,9 +89,14 @@ export function CashTodayTab() {
       .eq('hotel_id', profile.hotel_id).eq('date', day)
       .order('closed_at', { ascending: false })
     setTodayClosures((closuresToday ?? []).map((c: any) => ({ ...c, closed_by_name: c.profiles?.full_name, closed_by_role: c.profiles?.role })))
-  }
+  }, [profile?.hotel_id, selectedDate, pagination.page, pagination.itemsPerPage])
 
   useEffect(() => { fetchData() }, [profile?.hotel_id])
+
+  const handlePageChange = (newPage: number) => {
+    pagination.goToPage(newPage)
+    fetchData(selectedDate, newPage)
+  }
 
   const closuresCount = todayClosures.length
   const maxClosures = 999
@@ -132,6 +162,7 @@ export function CashTodayTab() {
 
       {showForm && <CashForm hotelId={profile?.hotel_id!} onCreated={() => { setShowForm(false); fetchData() }} />}
       <CashMovementsTable movements={movements} />
+      <Pagination page={pagination.page} totalPages={Math.ceil(totalCount / pagination.itemsPerPage)} onPageChange={handlePageChange} />
 
       <CashClosureModal
         open={showConfirmModal}

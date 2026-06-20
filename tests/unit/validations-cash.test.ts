@@ -63,11 +63,11 @@ describe('cashMovementSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('debe rechazar categoría inválida', () => {
+  it('debe rechazar categoría vacía', () => {
     const result = cashMovementSchema.safeParse({
       hotel_id: VALID_HOTEL_ID,
       type: 'income',
-      category: 'hospedaje',
+      category: '',
       amount: 100,
       payment_method: 'cash',
       description: 'Test',

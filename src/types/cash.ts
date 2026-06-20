@@ -2,6 +2,7 @@ export type PaymentMethod = 'cash' | 'card' | 'yape' | 'plin'
 
 export interface CashMovement {
   id: string
+  hotel_id: string
   type: 'income' | 'expense'
   category: string
   amount: number
