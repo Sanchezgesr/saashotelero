@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
+import { usePagination } from '@/hooks/usePagination'
 import { Search, Receipt, FileText, ExternalLink, Printer, ArrowLeft, X } from 'lucide-react'
+import { Pagination } from '@/components/Pagination'
 import { fmtDateTime } from '@/lib/utils/dates'
 import { toast } from 'sonner'
 import { printNotaVenta, downloadPdfNotaVenta, getWhatsAppLink, isValidPhone } from '@/components/print/NotaVentaPrint'
@@ -13,9 +15,11 @@ type Tab = 'emitir' | 'historial'
 
 export default function InvoicesPage() {
   const { profile } = useUser()
+  const pagination = usePagination({ itemsPerPage: 20 })
   const [tab, setTab] = useState<Tab>('emitir')
   const [pending, setPending] = useState<any[]>([])
   const [invoices, setInvoices] = useState<any[]>([])
+  const [totalInvoices, setTotalInvoices] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [emittingId, setEmittingId] = useState<string | null>(null)
@@ -42,24 +46,36 @@ export default function InvoicesPage() {
       if (!cfg?.enabled || !cfg.lucode_token) setFiscalReady(false)
       else setFiscalReady(true)
     })
-    Promise.all([
-      getPendingCheckins(profile.hotel_id),
-      supabase.from('invoices')
-        .select('*, checkins!left(guests(full_name, dni, phone), rooms(number))')
-        .eq('hotel_id', profile.hotel_id)
-        .order('created_at', { ascending: false })
-        .then(({ data }) => data ?? []),
-    ]).then(([p, inv]) => {
-      setPending(p)
-      setInvoices(inv)
-      setLoading(false)
-    })
-  }, [profile?.hotel_id])
+    fetchInvoices()
+  }, [profile?.hotel_id, pagination.page])
 
-  const filtered = invoices.filter(i =>
-    !search || i.serie?.toLowerCase().includes(search.toLowerCase()) ||
-    i.cliente_denominacion?.toLowerCase().includes(search.toLowerCase())
-  )
+  const fetchInvoices = useCallback(async () => {
+    if (!profile?.hotel_id) return
+    getPendingCheckins(profile.hotel_id).then(setPending)
+
+    const supabase = createClient()
+    const { count } = await supabase
+      .from('invoices')
+      .select('*', { count: 'exact', head: true })
+      .eq('hotel_id', profile.hotel_id)
+    setTotalInvoices(count ?? 0)
+
+    const from = (pagination.page - 1) * pagination.itemsPerPage
+    const to = from + pagination.itemsPerPage - 1
+    const { data } = await supabase
+      .from('invoices')
+      .select('*, checkins!left(guests(full_name, dni, phone), rooms(number))')
+      .eq('hotel_id', profile.hotel_id)
+      .order('created_at', { ascending: false })
+      .range(from, to)
+    setInvoices(data ?? [])
+    setLoading(false)
+  }, [profile?.hotel_id, pagination.page, pagination.itemsPerPage])
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    pagination.goToPage(1)
+  }
 
   const handleEmitir = async () => {
     if (!invoiceModal || !profile?.hotel_id) return
@@ -194,11 +210,11 @@ export default function InvoicesPage() {
         <>
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-3 text-muted-foreground" size={18} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
+            <input value={search} onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar por serie o cliente..."
               className="w-full border border-border rounded-lg pl-10 pr-4 py-3 text-sm" />
           </div>
-          {filtered.length === 0 ? (
+          {invoices.length === 0 ? (
             <p className="text-muted-foreground">No hay comprobantes emitidos.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -216,7 +232,7 @@ export default function InvoicesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filtered.map((inv) => (
+                  {invoices.map((inv) => (
                     <tr key={inv.id} className="hover:bg-muted/50">
                       <td className="px-4 py-3 text-sm">
                         <span className="flex items-center gap-1.5">
@@ -268,6 +284,7 @@ export default function InvoicesPage() {
               </table>
             </div>
           )}
+          <Pagination page={pagination.page} totalPages={Math.ceil(totalInvoices / pagination.itemsPerPage)} onPageChange={pagination.goToPage} />
         </>
       )}
 

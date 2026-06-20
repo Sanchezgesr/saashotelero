@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { PWARegister } from "@/components/PWARegister";
 import "./globals.css";
 import SentryClientInit from "@/components/SentryClientInit";
+import { QueryProvider } from "@/components/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,10 +52,12 @@ export default function RootLayout({
         <div id="main-content" className="flex-1 flex flex-col">
           {children}
         </div>
-        <Analytics />
-        <PWARegister />
-        <SentryClientInit />
-        <Toaster richColors />
+        <QueryProvider>
+          <Analytics />
+          <PWARegister />
+          <SentryClientInit />
+          <Toaster richColors />
+        </QueryProvider>
       </body>
     </html>
   );
