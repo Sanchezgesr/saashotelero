@@ -94,7 +94,7 @@ export async function performCashClosure(hotelId: string, notes?: string) {
       notes: notes || null,
     }).select().single()
 
-  if (error) throw new Error('Error al realizar cierre de caja')
+  if (error) throw new Error(error.message || 'Error al realizar cierre de caja')
 
   await logAction({
     supabase,

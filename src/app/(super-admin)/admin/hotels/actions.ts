@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit'
 import { createHotelSchema, parseAction } from '@/lib/validations'
 import { mutationRateLimit } from '@/lib/rate-limit'
+import { verifyLucodeToken } from '@/lib/facturacion/lucode'
 
 export async function createHotel(formData: FormData) {
   const rl = await mutationRateLimit('admin:hotels')
@@ -19,10 +21,19 @@ export async function createHotel(formData: FormData) {
     city:    formData.get('city'),
     phone:   formData.get('phone'),
     plan:    formData.get('plan') || 'basico_mensual',
+    lucode_token: formData.get('lucode_token') || '',
   }
 
   const { error: validationError, data: hotelData } = parseAction(createHotelSchema, raw)
   if (validationError || !hotelData) return { error: validationError || 'Datos inválidos' }
+
+  // Verify Lucode token if provided
+  if (raw.lucode_token) {
+    const verification = await verifyLucodeToken(String(raw.lucode_token))
+    if (!verification.valid) {
+      return { error: `Token Lucode inválido: ${verification.message}` }
+    }
+  }
 
   const { data, error } = await supabase
     .from('hotels')
@@ -33,6 +44,18 @@ export async function createHotel(formData: FormData) {
   if (error) {
     console.error('Error creating hotel:', error)
     return { error: error.message }
+  }
+
+  // Insert fiscal config with token if provided
+  if (raw.lucode_token) {
+    const svc = createServiceClient()
+    await svc.from('hotel_fiscal_config').upsert({
+      hotel_id: data.id,
+      lucode_token: String(raw.lucode_token),
+      serie_boleta: 'B001',
+      serie_factura: 'F001',
+      enabled: true,
+    }, { onConflict: 'hotel_id' })
   }
 
   const { data: { user } } = await supabase.auth.getUser()

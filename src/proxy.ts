@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { setCsrfCookie, CSRF_COOKIE } from '@/lib/csrf'
-import { proxyRateLimit } from '@/lib/rate-limit'
+import { proxyRateLimit, authRateLimit } from '@/lib/rate-limit'
 
 function buildCSP(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://lcuojjmgkgzfferoollp.supabase.co'
@@ -11,9 +11,9 @@ function buildCSP(): string {
     "default-src 'self'",
     `connect-src 'self' ${url} ${wss}`,
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     `img-src 'self' data: blob: ${storage}`,
-    "font-src 'self' data:",
+    "font-src 'self' data: https://fonts.gstatic.com",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
@@ -61,7 +61,17 @@ export async function proxy(request: NextRequest) {
   )
 
   const { pathname } = request.nextUrl
-  const publicRoutes = ['/login', '/auth/callback', '/api/health']
+  const authRoutes = ['/login', '/forgot-password', '/reset-password']
+  if (authRoutes.includes(pathname)) {
+    const authRl = await authRateLimit(ip)
+    if (!authRl.allowed) {
+      const resp = new NextResponse('Demasiados intentos. Intenta de nuevo en un minuto.', { status: 429 })
+      setSecurityHeaders(resp)
+      return resp
+    }
+  }
+
+  const publicRoutes = [...authRoutes, '/auth/callback', '/api/health']
   if (publicRoutes.includes(pathname)) {
     setSecurityHeaders(supabaseResponse)
     return supabaseResponse

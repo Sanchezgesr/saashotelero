@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { X, UserPlus, Check, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { searchGuests, createGuest, performCheckin } from '@/lib/supabase/checkin-actions'
+import { searchGuests, createGuest, performCheckin, consultarDniEnCheckin } from '@/lib/supabase/checkin-actions'
 
 interface CheckinModalProps {
   hotelId: string
@@ -24,6 +24,7 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
   const [guest, setGuest] = useState<any>(null)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [nights, setNights] = useState(1)
@@ -33,28 +34,56 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
   useEffect(() => {
     if (dni.length === 8 && /^\d+$/.test(dni)) {
       setLoading(true)
-      searchGuests(hotelId, dni).then((results) => { setSearchResults(results); setLoading(false) })
+      setNewGuest((prev) => ({ ...prev, full_name: '' }))
+      searchGuests(hotelId, dni).then(async (results) => {
+        setSearchResults(results)
+        if (results.length === 0) {
+          const r = await consultarDniEnCheckin(hotelId, dni)
+          if (r) {
+            const nombres = [r.nombres, r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ')
+            setNewGuest((prev) => ({ ...prev, full_name: nombres }))
+          }
+        }
+        setLoading(false)
+      })
     } else { setSearchResults([]) }
   }, [dni, hotelId])
 
   const selectGuest = (g: any) => { setGuest(g); setStep('payment') }
-  const showRegisterForm = () => { setNewGuest({ full_name: '', dni, phone: '', email: '', nationality: 'Peruana' }); setStep('register') }
+  const showRegisterForm = () => { setNewGuest((prev) => ({ ...prev, dni })); setStep('register') }
 
   const handleRegister = async () => {
     if (!newGuest.full_name) { toast.error('El nombre es obligatorio'); return }
-    const g = await createGuest({ hotel_id: hotelId, full_name: newGuest.full_name, dni: newGuest.dni, phone: newGuest.phone, email: newGuest.email, nationality: newGuest.nationality })
-    setGuest(g); setStep('payment')
+    setSubmitting(true)
+    try {
+      const g = await createGuest({ hotel_id: hotelId, full_name: newGuest.full_name, dni: newGuest.dni, phone: newGuest.phone, email: newGuest.email, nationality: newGuest.nationality })
+      toast.success('Huésped registrado')
+      setGuest(g); setStep('payment')
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al registrar huésped')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleCheckin = async () => {
     if (!guest || !paymentMethod) { toast.error('Selecciona un método de pago'); return }
-    await performCheckin({
-      hotel_id: hotelId, guest_id: guest.id, room_id: room.id,
-      room_number: room.number, price_per_night: room.price_per_night,
-      total_price: totalPrice, nights, payment_method: paymentMethod,
-      guest_name: guest.full_name, notes,
-    })
-    toast.success('Check-in registrado'); onClose()
+    if (!totalPrice || totalPrice <= 0) { toast.error('El monto total debe ser mayor a 0'); return }
+    setSubmitting(true)
+    try {
+      const r = await performCheckin({
+        hotel_id: hotelId, guest_id: guest.id, room_id: room.id,
+        room_number: room.number, price_per_night: room.price_per_night,
+        total_price: totalPrice, nights, payment_method: paymentMethod,
+        guest_name: guest.full_name, notes,
+      })
+      if (!r.success) { toast.error(r.error || 'Error al registrar check-in'); return }
+      toast.success('Check-in registrado'); onClose()
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al registrar check-in')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -126,9 +155,9 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
                 className={`flex items-center gap-1 ${st.btnSm} border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 ${st.minH}`}>
                 <ArrowLeft size={variant === 'receptionist' ? 18 : 16} /> Volver
               </button>
-              <button onClick={handleRegister}
-                className={`flex-1 bg-primary text-primary-foreground ${st.btnLg} rounded-lg font-semibold hover:opacity-90 ${st.minH}`}>
-                <Check size={variant === 'receptionist' ? 20 : 16} className="inline mr-1" /> Registrar y continuar
+              <button onClick={handleRegister} disabled={submitting}
+                className={`flex-1 bg-primary text-primary-foreground ${st.btnLg} rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 ${st.minH}`}>
+                {submitting ? 'Registrando...' : <><Check size={variant === 'receptionist' ? 20 : 16} className="inline mr-1" /> Registrar y continuar</>}
               </button>
             </div>
           </div>
@@ -180,9 +209,9 @@ export function CheckinModal({ hotelId, room, onClose, variant = 'admin' }: Chec
                 className={`flex items-center gap-1 ${st.btnSm} border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 ${st.minH}`}>
                 <ArrowLeft size={variant === 'receptionist' ? 18 : 16} /> Volver
               </button>
-              <button onClick={handleCheckin} disabled={!paymentMethod}
+              <button onClick={handleCheckin} disabled={!paymentMethod || !totalPrice || totalPrice <= 0 || submitting}
                 className={`flex-1 bg-green-600 text-white ${st.btnLg} rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 ${st.minH}`}>
-                <Check size={variant === 'receptionist' ? 20 : 16} className="inline mr-1" /> Cobrar y Check-in
+                {submitting ? 'Procesando...' : <><Check size={variant === 'receptionist' ? 20 : 16} className="inline mr-1" /> Cobrar y Check-in</>}
               </button>
             </div>
           </div>

@@ -101,10 +101,9 @@ export default function CheckinPage() {
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm" rows={2} /></div>
                 <button onClick={async () => {
                   if (!profile?.hotel_id || !guest || !selectedRoom) return
-                  try {
-                    await performCheckin({ hotel_id: profile.hotel_id, guest_id: guest.id, room_id: selectedRoom.id, room_number: selectedRoom.number, price_per_night: Number(pricePerNight), total_price: Number(pricePerNight), nights: 1, payment_method: 'cash', guest_name: guest.full_name, notes: notes || undefined })
-                    toast.success('Check-in registrado exitosamente'); resetForm(); loadRooms()
-                  } catch (err: any) { toast.error(err.message || 'Error al registrar check-in') }
+                  const r = await performCheckin({ hotel_id: profile.hotel_id, guest_id: guest.id, room_id: selectedRoom.id, room_number: selectedRoom.number, price_per_night: Number(pricePerNight), total_price: Number(pricePerNight), nights: 1, payment_method: 'cash', guest_name: guest.full_name, notes: notes || undefined })
+                  if (r.error) { toast.error(r.error); return }
+                  toast.success('Check-in registrado exitosamente'); resetForm(); loadRooms()
                 }}
                   className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-700">Confirmar Check-in</button>
               </div>

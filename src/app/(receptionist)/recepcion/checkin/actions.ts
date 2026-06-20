@@ -9,6 +9,7 @@ import { parseAction } from '@/lib/validations'
 import { rateLimit } from '@/lib/rate-limit'
 import { logAction } from '@/lib/audit'
 import { encrypt } from '@/lib/encryption'
+import { consultarDni } from '@/lib/facturacion/lucode'
 import { z } from 'zod'
 
 export async function getHotelPlan(hotelId: string) {
@@ -85,17 +86,20 @@ export async function performCheckin(data: {
   const { data: guest } = await supabase.from('guests').select('full_name').eq('id', validated.guest_id).single()
   const { data: room } = await supabase.from('rooms').select('number').eq('id', validated.room_id).single()
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data: result, error } = await supabase.rpc('perform_checkin_v2', {
     p_hotel_id: validated.hotel_id,
     p_guest_id: validated.guest_id,
     p_room_id: validated.room_id,
-    p_price: validated.price_per_night, // Total price for 1 night
+    p_price: validated.price_per_night,
     p_payment_method: 'cash',
     p_nights: 1,
     p_notes: validated.notes || null,
     p_price_per_night: validated.price_per_night,
     p_room_number: room?.number || '',
     p_guest_name: guest?.full_name || '',
+    p_created_by: user?.id ?? null,
   })
 
   if (error) throw new Error(error.message)
@@ -106,7 +110,6 @@ export async function performCheckin(data: {
   revalidatePath('/recepcion/checkin')
   revalidatePath('/recepcion/rooms')
 
-  const { data: { user } } = await supabase.auth.getUser()
   if (user) {
     await logAction({
       supabase, hotelId: validated.hotel_id, userId: user.id,
@@ -138,4 +141,17 @@ export async function getAvailableRooms(hotelId: string) {
     .order('number')
     .limit(100)
   return data ?? []
+}
+
+export async function consultarDniEnCheckinAction(hotelId: string, dni: string) {
+  const supabase = await createClient()
+  await assertHotelAccess(supabase, hotelId)
+  const svc = createServiceClient()
+  const { data: config } = await svc
+    .from('hotel_fiscal_config')
+    .select('lucode_token')
+    .eq('hotel_id', hotelId)
+    .single()
+  if (!config?.lucode_token) return null
+  return consultarDni(config.lucode_token, dni)
 }

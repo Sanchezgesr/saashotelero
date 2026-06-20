@@ -7,9 +7,14 @@ import { THEMES, type ThemeId } from '@/lib/themes'
 type ThemeContextType = {
   themeId: ThemeId
   setTheme: (hotelId: string, themeId: ThemeId) => Promise<void>
+  darkMode: boolean
+  toggleDarkMode: () => void
 }
 
-const ThemeContext = createContext<ThemeContextType>({ themeId: 'default', setTheme: async () => {} })
+const ThemeContext = createContext<ThemeContextType>({
+  themeId: 'default', setTheme: async () => {},
+  darkMode: false, toggleDarkMode: () => {},
+})
 
 export function useTheme() {
   return useContext(ThemeContext)
@@ -17,6 +22,25 @@ export function useTheme() {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeId, setThemeId] = useState<ThemeId>('default')
+  const [darkMode, setDarkMode] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('hcontrol-dark')
+    if (stored !== null) {
+      setDarkMode(stored === 'true')
+    } else {
+      setDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    document.documentElement.classList.toggle('dark', darkMode)
+    localStorage.setItem('hcontrol-dark', String(darkMode))
+  }, [darkMode, mounted])
 
   const applyTheme = useCallback((id: ThemeId) => {
     const theme = THEMES[id]
@@ -59,8 +83,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new CustomEvent('theme-updated'))
   }
 
+  const toggleDarkMode = () => setDarkMode(prev => !prev)
+
   return (
-    <ThemeContext.Provider value={{ themeId, setTheme }}>
+    <ThemeContext.Provider value={{ themeId, setTheme, darkMode, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   )

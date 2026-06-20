@@ -6,7 +6,7 @@ export interface LucodeItem {
   descripcion: string
   cantidad: number
   valor_unitario: number
-  porcentaje_igv: number
+  porcentaje_igv: string
   codigo_tipo_afectacion_igv: string
   nombre_tributo: string
 }
@@ -39,6 +39,24 @@ export interface LucodeResponse {
   }
 }
 
+export interface NotaCreditoParams {
+  token: string
+  tipo: 'boleta' | 'factura'
+  serie: string
+  numero: number
+  serie_referencia: string
+  numero_referencia: number
+  motivo_baja: string
+  moneda?: string
+  cliente_tipo_documento: string
+  cliente_numero_documento: string
+  cliente_denominacion: string
+  cliente_direccion?: string
+  items: LucodeItem[]
+  total: number
+  sandbox?: boolean
+}
+
 export async function emitirComprobante(params: EmitirParams): Promise<LucodeResponse> {
   const base = params.sandbox ? BASE_SANDBOX : BASE_PROD
   const res = await fetch(`${base}/documents`, {
@@ -61,6 +79,38 @@ export async function emitirComprobante(params: EmitirParams): Promise<LucodeRes
       items: params.items,
       total: params.total.toFixed(2),
       observacion: params.observacion,
+    }),
+  })
+  return res.json()
+}
+
+export async function emitirNotaCredito(params: NotaCreditoParams): Promise<LucodeResponse> {
+  const base = params.sandbox ? BASE_SANDBOX : BASE_PROD
+  const res = await fetch(`${base}/documents`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({
+      documento: 'nota_credito',
+      serie: params.serie,
+      numero: params.numero,
+      fecha_de_emision: new Date().toISOString().split('T')[0],
+      moneda: params.moneda ?? 'PEN',
+      tipo_operacion: '0101',
+      documento_referencia: {
+        tipo: params.tipo === 'factura' ? '01' : '02',
+        serie: params.serie_referencia,
+        numero: params.numero_referencia,
+      },
+      motivo_baja: params.motivo_baja,
+      cliente_tipo_de_documento: params.cliente_tipo_documento,
+      cliente_numero_de_documento: params.cliente_numero_documento,
+      cliente_denominacion: params.cliente_denominacion,
+      cliente_direccion: params.cliente_direccion ?? '',
+      items: params.items,
+      total: params.total.toFixed(2),
     }),
   })
   return res.json()
@@ -133,4 +183,21 @@ export async function consultarRuc(token: string, ruc: string): Promise<RucData 
 
 export function getNextNumber(ultimoNumero: number | null): number {
   return (ultimoNumero ?? 0) + 1
+}
+
+export async function verifyLucodeToken(token: string): Promise<{ valid: boolean; message: string }> {
+  try {
+    const res = await fetch(`https://dev.apisunat.pe/api/v1/business/ruc/20123456789`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.status === 401) {
+      return { valid: false, message: 'Token inválido o revocado (error 401)' }
+    }
+    if (!res.ok) {
+      return { valid: false, message: `Error al verificar token (HTTP ${res.status})` }
+    }
+    return { valid: true, message: 'Token válido' }
+  } catch {
+    return { valid: false, message: 'No se pudo conectar con Lucode API. Verifica tu conexión.' }
+  }
 }

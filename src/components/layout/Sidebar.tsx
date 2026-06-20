@@ -12,6 +12,7 @@ import {
 import { signOut } from '@/lib/supabase/actions'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
+import { DarkModeToggle } from '@/components/DarkModeToggle'
 
 const menuItems = [
   { label: 'Dashboard',    icon: LayoutDashboard, href: '/hotel/dashboard' },
@@ -97,7 +98,11 @@ export function Sidebar() {
           </div>
         )}
         <div className="mx-4 h-px bg-white/5" />
-        <div className="p-3">
+        <div className="p-3 space-y-1">
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="text-xs text-sidebar-foreground/40 font-medium">Apariencia</span>
+            <DarkModeToggle className="text-sidebar-foreground/70 hover:text-white hover:bg-white/10" />
+          </div>
           <form action={signOut}>
             <button type="submit"
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/10 w-full transition-all duration-200">
@@ -127,6 +132,7 @@ export function Sidebar() {
                 </Link>
               )
             })}
+            <DarkModeToggle className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground shrink-0" />
             <form action={signOut} className="shrink-0">
               <button type="submit"
                 className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground whitespace-nowrap cursor-pointer">

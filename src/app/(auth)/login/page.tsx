@@ -125,11 +125,16 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="remember" checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-300 cursor-pointer" />
-                <label htmlFor="remember" className="text-sm text-slate-600 cursor-pointer select-none">Recordarme</label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="remember" checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-300 cursor-pointer" />
+                  <label htmlFor="remember" className="text-sm text-slate-600 cursor-pointer select-none">Recordarme</label>
+                </div>
+                <a href="/forgot-password" className="text-sm text-cyan-600 hover:text-cyan-700 font-medium hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </a>
               </div>
 
               <button onClick={handleLogin} disabled={loading}

@@ -6,6 +6,11 @@ import { THEMES, type ThemeId } from '@/lib/themes'
 
 export function HotelThemeLoader() {
   useEffect(() => {
+    const stored = localStorage.getItem('hcontrol-dark')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDark = stored !== null ? stored === 'true' : prefersDark
+    document.documentElement.classList.toggle('dark', isDark)
+
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return

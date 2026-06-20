@@ -12,20 +12,42 @@ type FormState = {
   payment_method: 'cash' | 'card' | 'yape' | 'plin'
 }
 
+const INCOME_CATEGORIES = [
+  { value: 'checkin', label: 'Check-in' },
+  { value: 'service', label: 'Servicio' },
+  { value: 'other', label: 'Otro' },
+]
+
+const EXPENSE_CATEGORIES = [
+  { value: 'Limpieza y mantenimiento', label: 'Limpieza y mantenimiento' },
+  { value: 'Servicios básicos', label: 'Servicios básicos (agua/luz/internet)' },
+  { value: 'Compras de insumos', label: 'Compras de insumos' },
+  { value: 'Comisiones', label: 'Comisiones' },
+  { value: 'Gastos de personal', label: 'Gastos de personal' },
+  { value: 'Otros', label: 'Otros' },
+]
+
 export function CashForm({ hotelId, onCreated }: { hotelId: string; onCreated: () => void }) {
   const [form, setForm] = useState<FormState>({
     type: 'income', category: 'service', amount: '', description: '', payment_method: 'cash',
   })
+  const [saving, setSaving] = useState(false)
+
+  const categories = form.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
   const handleSubmit = async () => {
     const parsed = Number(form.amount)
     if (!form.amount || isNaN(parsed) || parsed <= 0) return
+    setSaving(true)
     try {
       await createCashMovement({ ...form, amount: parsed, hotel_id: hotelId })
+      toast.success('Movimiento registrado')
       setForm({ type: 'income', category: 'service', amount: '', description: '', payment_method: 'cash' })
       onCreated()
     } catch {
       toast.error('Error al registrar movimiento')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -44,11 +66,9 @@ export function CashForm({ hotelId, onCreated }: { hotelId: string; onCreated: (
           <label className="block text-sm font-medium mb-1">Categoría</label>
           <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
             className="w-full border border-border rounded-lg px-3 py-2 text-sm">
-            <option value="checkin">Check-in</option>
-            <option value="service">Servicio</option>
-            <option value="supply">Insumo</option>
-            <option value="salary">Sueldo</option>
-            <option value="other">Otro</option>
+            {categories.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
           </select>
         </div>
         <div>
@@ -72,9 +92,9 @@ export function CashForm({ hotelId, onCreated }: { hotelId: string; onCreated: (
         <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
           className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
       </div>
-      <button onClick={handleSubmit}
-        className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-        Registrar movimiento
+      <button onClick={handleSubmit} disabled={saving}
+        className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50">
+        {saving ? 'Guardando...' : 'Registrar movimiento'}
       </button>
     </div>
   )

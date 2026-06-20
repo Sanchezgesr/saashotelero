@@ -1,7 +1,13 @@
+import type { Metadata } from 'next'
 import Sidebar from '@/components/layout/SuperAdminSidebar'
 import Header from '@/components/layout/Header'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { SessionWatcher } from '@/components/SessionWatcher'
+
+export const metadata: Metadata = {
+  title: 'Admin — HControl',
+  description: 'Panel de administración del sistema HControl: hoteles, usuarios, planes, auditoría y métricas.',
+}
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   return (

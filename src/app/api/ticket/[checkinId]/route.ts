@@ -21,6 +21,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chec
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return new NextResponse('No autorizado', { status: 401 })
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('hotel_id')
+    .eq('id', session.user.id)
+    .single()
+
   const svc = createServiceClient()
   const { data: checkin } = await svc
     .from('checkins')
@@ -30,14 +36,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chec
 
   if (!checkin) return new NextResponse('Not found', { status: 404 })
 
+  if (profile?.hotel_id && checkin.hotel_id !== profile.hotel_id) {
+    return new NextResponse('Acceso denegado', { status: 403 })
+  }
+
   const { data: hotel } = await svc
     .from('hotels')
-    .select('name, ruc')
+    .select('name, ruc, address')
     .eq('id', checkin.hotel_id)
     .single()
 
   const hotelName = hotel?.name || 'HControl'
   const hotelRuc = hotel?.ruc || ''
+  const hotelAddress = hotel?.address || ''
   const total = Number(checkin.total_price).toFixed(2)
   const paymentMethod = (checkin.payment_method || 'cash').toUpperCase()
   const checkIn = new Date(checkin.check_in_at).toLocaleString('es-PE')
@@ -90,6 +101,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chec
 </style></head><body>
   <div class="header">
     <div class="hotel">${hotelName}</div>
+    ${hotelAddress ? `<div class="ruc">${hotelAddress}</div>` : ''}
     ${hotelRuc ? `<div class="ruc">RUC: ${hotelRuc}</div>` : ''}
     <div class="title">COMPROBANTE DE PAGO</div>
   </div>

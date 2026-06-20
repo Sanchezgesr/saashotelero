@@ -20,19 +20,23 @@ export default function CashPage() {
   const [summary, setSummary] = useState<CashSummary>({ totalIncome: 0, totalExpense: 0, balance: 0, byCash: 0, byCard: 0, byYape: 0, byPlin: 0 })
   const [loading, setLoading] = useState(true)
   const [closureNotes, setClosureNotes] = useState('')
+  const [selectedDate, setSelectedDate] = useState(localDate())
 
-  const fetchMovements = async () => {
+  const fetchMovements = async (date?: string) => {
     if (!profile?.hotel_id) return
     setLoading(true)
     const supabase = createClient()
-    const nd = new Date()
+    const day = date ?? selectedDate
+    const nd = new Date(day + 'T00:00:00')
     nd.setDate(nd.getDate() + 1)
     const nextDay = localDate(nd)
-    const todayEnd = `${nextDay}T00:00:00${tzOffset()}`
+    const dayStart = `${day}T00:00:00${tzOffset()}`
+    const dayEnd = `${nextDay}T00:00:00${tzOffset()}`
 
     const { data: lastClosures } = await supabase
       .from('cash_closures').select('closed_at')
       .eq('hotel_id', profile.hotel_id)
+      .lte('closed_at', dayEnd)
       .order('closed_at', { ascending: false }).limit(1)
 
     const lastClosureAt = lastClosures?.[0]?.closed_at
@@ -40,7 +44,8 @@ export default function CashPage() {
     let query = supabase
       .from('cash_movements').select('*')
       .eq('hotel_id', profile.hotel_id)
-      .lt('created_at', todayEnd)
+      .gte('created_at', dayStart)
+      .lt('created_at', dayEnd)
 
     if (lastClosureAt) {
       query = query.gte('created_at', lastClosureAt)
@@ -90,7 +95,10 @@ export default function CashPage() {
           <h1 className="text-xl font-bold text-gray-900">Caja del Día</h1>
           <p className="text-xs text-gray-500 font-semibold font-mono">Restricción: Recepcionista (Solo Ingresos)</p>
         </div>
-        <p className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">{fmtDate(new Date())}</p>
+        <div className="flex items-center gap-2">
+          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); fetchMovements(e.target.value) }}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+        </div>
       </div>
 
       <div className="bg-orange-50 border border-orange-100 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-orange-800">

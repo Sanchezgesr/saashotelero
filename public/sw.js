@@ -28,6 +28,8 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
   if (url.hostname.includes('supabase.co') || url.hostname.includes('sentry.io')) return
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    fetch(e.request).catch(() =>
+      caches.match(e.request, { ignoreVary: true }).then((r) => r || caches.match('/'))
+    )
   )
 })

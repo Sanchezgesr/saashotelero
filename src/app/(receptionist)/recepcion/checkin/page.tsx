@@ -5,10 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Search, ArrowRight, ArrowLeft, Check, UserPlus, Printer } from 'lucide-react'
 import { toast } from 'sonner'
-import { performCheckin, createGuest, getAvailableRooms, getHotelPlan } from './actions'
+import { performCheckin, createGuest, getAvailableRooms, getHotelPlan, consultarDniEnCheckinAction } from './actions'
 import { useRouter } from 'next/navigation'
 import { fmtDateTime } from '@/lib/utils/dates'
 import { printNotaVenta } from '@/components/print/NotaVentaPrint'
+import { emitirNotaVentaAction } from '@/app/(hotel-admin)/hotel/invoices/actions'
 
 type Step = 'guest' | 'room' | 'confirm'
 
@@ -35,11 +36,17 @@ export default function CheckinPage() {
     getHotelPlan(profile.hotel_id).then((data) => {
       if (data) setHotel(data)
     })
+    const supabase = createClient()
+    supabase.from('hotels').select('name, ruc, address').eq('id', profile.hotel_id).single().then(({ data }) => {
+      if (data) setHotel((prev: any) => ({ ...prev, ruc: data.ruc, address: data.address }))
+    })
   }, [profile?.hotel_id])
 
   const handleSearch = async () => {
     if (!dni) return
     setLoading(true)
+    setSearchResults([])
+    setNewGuestName('')
     const supabase = createClient()
     const escaped = dni.replace(/[%_]/g, '\\$&')
     const { data } = await supabase
@@ -47,7 +54,17 @@ export default function CheckinPage() {
       .eq('hotel_id', profile?.hotel_id)
       .or(`dni.ilike.%${escaped}%,full_name.ilike.%${escaped}%`)
       .limit(10)
-    setSearchResults(data ?? [])
+    const results = data ?? []
+    setSearchResults(results)
+
+    if (results.length === 0 && /^\d{8}$/.test(dni) && profile?.hotel_id) {
+      const r = await consultarDniEnCheckinAction(profile.hotel_id, dni)
+      if (r) {
+        const nombres = [r.nombres, r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ')
+        setNewGuestName(nombres)
+      }
+    }
+
     setLoading(false)
   }
 
@@ -240,16 +257,33 @@ export default function CheckinPage() {
             <p><span className="text-muted-foreground">Habitación:</span> <strong>{checkinResult.room?.number}</strong></p>
             <p><span className="text-muted-foreground">Total:</span> <strong>S/. {Number(checkinResult.room?.price_per_night).toFixed(2)}</strong></p>
           </div>
-          <button onClick={() => printNotaVenta({
-            hotelName: hotel?.name,
-            guestName: checkinResult.guest?.full_name,
-            guestDoc: checkinResult.guest?.dni,
-            roomNumber: checkinResult.room?.number,
-            checkIn: fmtDateTime(new Date()),
-            total: Number(checkinResult.room?.price_per_night),
-            paymentMethod: 'cash',
-            tipo: 'checkin',
-          })}
+          <button onClick={async () => {
+            const r = await emitirNotaVentaAction({
+              hotel_id: profile?.hotel_id!,
+              checkin_id: checkinResult.id,
+              guest_name: checkinResult.guest?.full_name || '',
+              guest_doc: checkinResult.guest?.dni,
+              room_number: checkinResult.room?.number || '',
+              total: Number(checkinResult.room?.price_per_night),
+              payment_method: 'cash',
+              tipo: 'checkin',
+            })
+            if (r.error) { toast.error(r.error); return }
+            printNotaVenta({
+              hotelName: r.hotelName,
+              hotelRuc: r.hotelRuc,
+              hotelAddress: r.hotelAddress,
+              serie: r.serie,
+              numero: r.numero,
+              guestName: checkinResult.guest?.full_name,
+              guestDoc: checkinResult.guest?.dni,
+              roomNumber: checkinResult.room?.number,
+              checkIn: fmtDateTime(new Date()),
+              total: Number(checkinResult.room?.price_per_night),
+              paymentMethod: 'cash',
+              tipo: 'checkin',
+            })
+          }}
             className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white py-3 rounded-lg text-sm font-semibold hover:bg-gray-900">
             <Printer size={18} /> Imprimir Nota de Venta
           </button>

@@ -85,6 +85,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 400 })
     }
 
+    try {
+      const { data: hotel } = await adminClient.from('hotels').select('name').eq('id', hotelId).single()
+      if (hotel?.name) {
+        const { sendWelcomeEmail } = await import('@/lib/email')
+        await sendWelcomeEmail({ to: email, name: full_name, hotelName: hotel.name, email, password })
+      }
+    } catch {
+      /* email sending is best-effort */
+    }
+
     return NextResponse.json({ success: true, user: newUser })
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })

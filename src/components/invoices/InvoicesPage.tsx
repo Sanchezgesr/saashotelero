@@ -6,8 +6,8 @@ import { useUser } from '@/hooks/useUser'
 import { Search, Receipt, FileText, ExternalLink, Printer, ArrowLeft, X } from 'lucide-react'
 import { fmtDateTime } from '@/lib/utils/dates'
 import { toast } from 'sonner'
-import { printNotaVenta, getWhatsAppLink } from '@/components/print/NotaVentaPrint'
-import { emitirComprobanteAction, consultarRucAction, consultarDniAction, getPendingCheckins, getFiscalConfig, getHotelName } from '@/app/(hotel-admin)/hotel/invoices/actions'
+import { printNotaVenta, downloadPdfNotaVenta, getWhatsAppLink, isValidPhone } from '@/components/print/NotaVentaPrint'
+import { emitirComprobanteAction, consultarRucAction, consultarDniAction, anularComprobanteAction, emitirNotaVentaAction, getPendingCheckins, getFiscalConfig } from '@/app/(hotel-admin)/hotel/invoices/actions'
 
 type Tab = 'emitir' | 'historial'
 
@@ -23,16 +23,25 @@ export default function InvoicesPage() {
   const [emitResult, setEmitResult] = useState<any>(null)
   const [fiscalReady, setFiscalReady] = useState(true)
   const [hotelName, setHotelName] = useState('')
+  const [hotelRuc, setHotelRuc] = useState('')
+  const [hotelAddress, setHotelAddress] = useState('')
   const [notaVentaPreview, setNotaVentaPreview] = useState<any>(null)
+  const [nvSerie, setNvSerie] = useState('')
+  const [nvNumero, setNvNumero] = useState(0)
+  const [anularModal, setAnularModal] = useState<any>(null)
+  const [anularMotivo, setAnularMotivo] = useState('')
+  const [anulando, setAnulando] = useState(false)
 
   useEffect(() => {
     if (!profile?.hotel_id) return
-    getHotelName(profile.hotel_id).then(setHotelName)
+    const supabase = createClient()
+    supabase.from('hotels').select('name, ruc, address').eq('id', profile.hotel_id).single().then(({ data }) => {
+      if (data) { setHotelName(data.name); setHotelRuc(data.ruc || ''); setHotelAddress(data.address || '') }
+    })
     getFiscalConfig(profile.hotel_id).then((cfg) => {
       if (!cfg?.enabled || !cfg.lucode_token) setFiscalReady(false)
       else setFiscalReady(true)
     })
-    const supabase = createClient()
     Promise.all([
       getPendingCheckins(profile.hotel_id),
       supabase.from('invoices')
@@ -75,6 +84,8 @@ export default function InvoicesPage() {
 
   const getNotaVentaData = (c: any) => ({
     hotelName: hotelName,
+    hotelRuc: hotelRuc,
+    hotelAddress: hotelAddress,
     guestName: c.guests?.full_name,
     guestDoc: c.guests?.dni,
     roomNumber: c.rooms?.number,
@@ -143,7 +154,24 @@ export default function InvoicesPage() {
                   <p className="text-xs text-muted-foreground">📱 {c.guests.phone}</p>
                 )}
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                  <button onClick={() => setNotaVentaPreview(c)}
+                  <button onClick={async () => {
+                    const r = await emitirNotaVentaAction({
+                      hotel_id: profile?.hotel_id!,
+                      checkin_id: c.id,
+                      guest_name: c.guests?.full_name || '',
+                      guest_doc: c.guests?.dni,
+                      room_number: c.rooms?.number || '',
+                      total: Number(c.total_price),
+                      payment_method: c.payment_method,
+                    })
+                    if (r.error) { toast.error(r.error); return }
+                    setNvSerie((r as any).serie || 'NV')
+                    setNvNumero((r as any).numero || 0)
+                    setHotelName((r as any).hotelName || '')
+                    setHotelRuc((r as any).hotelRuc || '')
+                    setHotelAddress((r as any).hotelAddress || '')
+                    setNotaVentaPreview(c)
+                  }}
                     className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 whitespace-nowrap">
                     <Printer size={16} /> Nota de Venta
                   </button>
@@ -184,6 +212,7 @@ export default function InvoicesPage() {
                     <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">Fecha</th>
                     <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">PDF</th>
                     <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">WhatsApp</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -202,6 +231,7 @@ export default function InvoicesPage() {
                           inv.estado === 'ACEPTADO' ? 'bg-green-100 text-green-700' :
                           inv.estado === 'PENDIENTE' ? 'bg-yellow-100 text-yellow-700' :
                           inv.estado === 'RECHAZADO' ? 'bg-red-100 text-red-700' :
+                          inv.estado === 'anulada' ? 'bg-gray-200 text-gray-500 line-through' :
                           'bg-gray-100 text-gray-500'
                         }`}>{inv.estado}</span>
                       </td>
@@ -215,11 +245,21 @@ export default function InvoicesPage() {
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {inv.checkins?.guests?.phone ? (
+                        {inv.checkins?.guests?.phone && isValidPhone(inv.checkins.guests.phone) ? (
                           <a href={`https://wa.me/${String(inv.checkins.guests.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${inv.checkins.guests.full_name || ''}, tu comprobante ${inv.tipo === 'boleta' ? 'Boleta' : 'Factura'} ${inv.serie}-${String(inv.numero).padStart(3, '0')} fue emitido. ¡Gracias por su preferencia!`)}`} target="_blank" rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-700 inline-flex items-center gap-1 text-xs font-medium">
                             Enviar
                           </a>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {inv.estado === 'anulada' ? (
+                          <span className="text-xs text-gray-400">Anulado</span>
+                        ) : inv.estado === 'ACEPTADO' ? (
+                          <button onClick={() => { setAnularModal(inv); setAnularMotivo('') }}
+                            className="text-red-500 hover:text-red-700 text-xs font-medium">
+                            Anular
+                          </button>
                         ) : '—'}
                       </td>
                     </tr>
@@ -237,6 +277,9 @@ export default function InvoicesPage() {
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold">Nota de Venta</h2>
+                {nvSerie && nvNumero > 0 && (
+                  <span className="text-sm font-bold bg-gray-100 px-3 py-1 rounded-lg">{nvSerie}-{String(nvNumero).padStart(4, '0')}</span>
+                )}
                 <button onClick={() => setNotaVentaPreview(null)}
                   className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg">
                   <X size={20} />
@@ -245,7 +288,10 @@ export default function InvoicesPage() {
               <div className="bg-white border border-border rounded-lg p-4 text-sm font-mono space-y-2">
                 <div className="text-center border-b border-dashed border-gray-300 pb-3 mb-2">
                   <p className="font-bold text-base">{hotelName}</p>
+                  {hotelAddress && <p className="text-xs text-gray-500">{hotelAddress}</p>}
+                  {hotelRuc && <p className="text-xs text-gray-500">RUC: {hotelRuc}</p>}
                   <p className="font-bold text-xs bg-gray-900 text-white inline-block px-3 py-1 rounded mt-2">COMPROBANTE DE PAGO</p>
+                  {nvSerie && nvNumero > 0 && <p className="text-xs text-gray-500 mt-1">{nvSerie}-{String(nvNumero).padStart(4, '0')}</p>}
                 </div>
                 <div className="border-t border-dashed border-gray-300 pt-2 space-y-1">
                   <p><span className="text-gray-500">Huésped:</span> <span className="font-semibold">{notaVentaPreview.guests?.full_name}</span></p>
@@ -265,12 +311,34 @@ export default function InvoicesPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <button onClick={() => { printNotaVenta(getNotaVentaData(notaVentaPreview)); setNotaVentaPreview(null) }}
+                <button onClick={async () => {
+                  const data: any = getNotaVentaData(notaVentaPreview)
+                  data.serie = nvSerie
+                  data.numero = nvNumero
+                  data.hotelName = hotelName
+                  data.hotelRuc = hotelRuc
+                  data.hotelAddress = hotelAddress
+                  printNotaVenta(data)
+                  setNotaVentaPreview(null)
+                }}
                   className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white py-3 rounded-lg text-sm font-semibold hover:bg-gray-900">
                   <Printer size={18} /> Imprimir
                 </button>
-                {notaVentaPreview.guests?.phone && (
-                  <a href={getWhatsAppLink(getNotaVentaData(notaVentaPreview), notaVentaPreview.guests.phone)}
+                <button onClick={async () => {
+                  const data: any = getNotaVentaData(notaVentaPreview)
+                  data.serie = nvSerie
+                  data.numero = nvNumero
+                  data.hotelName = hotelName
+                  data.hotelRuc = hotelRuc
+                  data.hotelAddress = hotelAddress
+                  await downloadPdfNotaVenta(data)
+                  setNotaVentaPreview(null)
+                }}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                  <FileText size={18} /> Guardar PDF
+                </button>
+                {notaVentaPreview.guests?.phone && isValidPhone(notaVentaPreview.guests.phone) && (
+                  <a href={`https://wa.me/${String(notaVentaPreview.guests.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`${hotelName}\n${nvSerie}-${String(nvNumero).padStart(4, '0')}\nHuésped: ${notaVentaPreview.guests?.full_name}\nHabitación: ${notaVentaPreview.rooms?.number}\nTotal: S/. ${Number(notaVentaPreview.total_price).toFixed(2)}\n\n¡Gracias por su preferencia!`)}`}
                     target="_blank" rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-green-700">
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Enviar por WhatsApp
@@ -281,6 +349,49 @@ export default function InvoicesPage() {
                   Cerrar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {anularModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-border w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-red-700">Anular comprobante</h2>
+              <button onClick={() => setAnularModal(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm space-y-1">
+              <p><span className="text-red-700 font-semibold">{anularModal.serie}-{String(anularModal.numero).padStart(3, '0')}</span></p>
+              <p className="text-red-600">Cliente: {anularModal.cliente_denominacion}</p>
+              <p className="text-red-600">Monto: S/. {Number(anularModal.monto).toFixed(2)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Motivo de anulación *</label>
+              <input value={anularMotivo} onChange={(e) => setAnularMotivo(e.target.value)}
+                placeholder="Ej: Emisión de prueba"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setAnularModal(null)}
+                className="flex items-center gap-2 border border-border text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted">
+                Cancelar
+              </button>
+              <button onClick={async () => {
+                if (!anularMotivo.trim()) return
+                setAnulando(true)
+                const res = await anularComprobanteAction(anularModal.id, profile?.hotel_id!, anularMotivo)
+                setAnulando(false)
+                setAnularModal(null)
+                if (res.error) { toast.error(res.error); return }
+                toast.success(res.message || 'Comprobante anulado')
+              }} disabled={!anularMotivo.trim() || anulando}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+                {anulando ? 'ANULANDO...' : 'ANULAR COMPROBANTE'}
+              </button>
             </div>
           </div>
         </div>
@@ -299,12 +410,15 @@ export default function InvoicesPage() {
                   </button>
                 </div>
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm">
-                  <p className="font-semibold text-green-800">
+                  <p className="font-bold text-green-800">{hotelName}</p>
+                  {hotelAddress && <p className="text-xs text-green-700">{hotelAddress}</p>}
+                  {hotelRuc && <p className="text-xs text-green-700">RUC: {hotelRuc}</p>}
+                  <p className="font-semibold text-green-800 mt-2">
                     {emitResult.tipo === 'boleta' ? 'Boleta' : 'Factura'} {emitResult.serie}-{String(emitResult.numero).padStart(3, '0')}
                   </p>
                   <p className="text-green-600">Estado: {emitResult.estado}</p>
                 </div>
-                {emitResult.guest?.phone && (
+                {emitResult.guest?.phone && isValidPhone(emitResult.guest.phone) && (
                   <a href={`https://wa.me/${String(emitResult.guest.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${emitResult.guest.full_name || ''}, tu comprobante electrónico ${emitResult.tipo === 'boleta' ? 'Boleta' : 'Factura'} ${emitResult.serie}-${String(emitResult.numero).padStart(3, '0')} ha sido emitido. ¡Gracias por su preferencia!`)}`} target="_blank" rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-green-700">
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Enviar por WhatsApp
@@ -325,6 +439,11 @@ export default function InvoicesPage() {
                     className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg">
                     ✕
                   </button>
+                </div>
+                <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
+                  <p className="font-bold">{hotelName}</p>
+                  {hotelAddress && <p className="text-xs text-muted-foreground">{hotelAddress}</p>}
+                  {hotelRuc && <p className="text-xs text-muted-foreground">RUC: {hotelRuc}</p>}
                 </div>
                 <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
                   <p><span className="text-muted-foreground">Cliente:</span> <strong>{invoiceModal.checkin.guests?.full_name}</strong></p>

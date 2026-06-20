@@ -51,7 +51,7 @@ export async function rateLimit(
 }
 
 export async function proxyRateLimit(identifier: string) {
-  return rateLimit(identifier, 300, 60_000)
+  return rateLimit(identifier, 10000, 60_000)
 }
 
 export async function mutationRateLimit(identifier: string) {

@@ -17,6 +17,7 @@ export function RoomForm({
   const [form, setForm] = useState({
     number: '', type: 'simple', capacity: 2, price_per_night: '', floor: 1, description: '', status: 'available',
   })
+  const [saving, setSaving] = useState(false)
   const [priceWarning, setPriceWarning] = useState('')
 
   useEffect(() => {
@@ -51,14 +52,21 @@ export function RoomForm({
       toast.error('Completa todos los campos requeridos')
       return
     }
+    setSaving(true)
     const supabase = createClient()
-    if (editingRoom) {
-      await normalizeRoomType(editingRoom.id, hotelId)
-      const { error } = await supabase.from('rooms').update({ ...form, price_per_night: price }).eq('id', editingRoom.id)
-      if (error) { toast.error('Error al actualizar: ' + error.message) } else { toast.success('Habitación actualizada'); onCreated() }
-    } else {
-      const { error } = await supabase.from('rooms').insert({ ...form, price_per_night: price, hotel_id: hotelId })
-      if (error) { toast.error('Error al crear: ' + error.message) } else { toast.success('Habitación creada'); onCreated() }
+    try {
+      if (editingRoom) {
+        await normalizeRoomType(editingRoom.id, hotelId)
+        const { error } = await supabase.from('rooms').update({ ...form, price_per_night: price }).eq('id', editingRoom.id)
+        if (error) { toast.error('Error al actualizar: ' + error.message) } else { toast.success('Habitación actualizada'); onCreated() }
+      } else {
+        const { error } = await supabase.from('rooms').insert({ ...form, price_per_night: price, hotel_id: hotelId })
+        if (error) { toast.error('Error al crear: ' + error.message) } else { toast.success('Habitación creada'); onCreated() }
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -115,9 +123,9 @@ export function RoomForm({
       <div className="flex justify-end gap-2 pt-3 border-t border-border">
         <button type="button" onClick={onCancel}
           className="px-4 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
-        <button type="submit"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer">
-          {editingRoom ? 'Guardar cambios' : 'Registrar habitación'}
+        <button type="submit" disabled={saving}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer">
+          {saving ? 'Guardando...' : (editingRoom ? 'Guardar cambios' : 'Registrar habitación')}
         </button>
       </div>
     </form>

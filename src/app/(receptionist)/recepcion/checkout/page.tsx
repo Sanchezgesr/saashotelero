@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { performCheckout } from '@/lib/supabase/checkin-actions'
 import { fmtDateTime } from '@/lib/utils/dates'
 import { printNotaVenta } from '@/components/print/NotaVentaPrint'
+import { emitirNotaVentaAction } from '@/app/(hotel-admin)/hotel/invoices/actions'
 
 export default function CheckoutPage() {
   const { profile } = useUser()
@@ -18,6 +19,8 @@ export default function CheckoutPage() {
   const [search, setSearch] = useState('')
   const [checkedOut, setCheckedOut] = useState<any>(null)
   const [hotelName, setHotelName] = useState('')
+  const [hotelRuc, setHotelRuc] = useState('')
+  const [hotelAddress, setHotelAddress] = useState('')
 
   const fetch = async () => {
     if (!profile?.hotel_id) return
@@ -29,8 +32,8 @@ export default function CheckoutPage() {
       .eq('status', 'active')
       .order('check_in_at')
     setActiveCheckins(data ?? [])
-    const { data: hotel } = await supabase.from('hotels').select('name').eq('id', profile.hotel_id).single()
-    if (hotel) setHotelName(hotel.name)
+    const { data: hotel } = await supabase.from('hotels').select('name, ruc, address').eq('id', profile.hotel_id).single()
+    if (hotel) { setHotelName(hotel.name); setHotelRuc(hotel.ruc); setHotelAddress(hotel.address) }
   }
 
   useEffect(() => { fetch() }, [profile?.hotel_id])
@@ -64,9 +67,24 @@ export default function CheckoutPage() {
     }
   }
 
-  const handlePrintNotaVenta = (c: any) => {
+  const handlePrintNotaVenta = async (c: any) => {
+    const r = await emitirNotaVentaAction({
+      hotel_id: profile?.hotel_id!,
+      checkin_id: c.id,
+      guest_name: c.guests?.full_name || '',
+      guest_doc: c.guests?.dni,
+      room_number: c.rooms?.number || '',
+      total: Number(c.total_price),
+      payment_method: c.payment_method,
+      tipo: 'checkout',
+    })
+    if (r.error) { toast.error(r.error); return }
     printNotaVenta({
-      hotelName: hotelName,
+      hotelName: r.hotelName,
+      hotelRuc: r.hotelRuc,
+      hotelAddress: r.hotelAddress,
+      serie: r.serie,
+      numero: r.numero,
       guestName: c.guests?.full_name,
       guestDoc: c.guests?.dni,
       roomNumber: c.rooms?.number,

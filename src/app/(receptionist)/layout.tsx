@@ -11,6 +11,8 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { HotelThemeLoader } from '@/components/HotelThemeLoader'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { SessionWatcher } from '@/components/SessionWatcher'
+import { ConnectionStatus } from '@/components/ConnectionStatus'
+import { DarkModeToggle } from '@/components/DarkModeToggle'
 
 const menuItems = [
   { label: 'Inicio',       icon: Home,      href: '/recepcion/dashboard' },
@@ -107,7 +109,11 @@ function Sidebar() {
 
       <div className="mx-4 h-px bg-white/5" />
 
-      <div className="p-3">
+      <div className="p-3 space-y-1">
+        <div className="flex items-center justify-between px-3 py-2">
+          <span className="text-xs text-sidebar-foreground/40 font-medium">Apariencia</span>
+          <DarkModeToggle className="text-sidebar-foreground/70 hover:text-white hover:bg-white/10" />
+        </div>
         <form action={signOut}>
           <button type="submit"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/10 w-full transition-all duration-200">
@@ -151,6 +157,7 @@ function BottomNav() {
               </Link>
             )
           })}
+          <DarkModeToggle className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground shrink-0" />
           <form action={signOut} className="shrink-0">
             <button type="submit"
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground whitespace-nowrap cursor-pointer">
@@ -168,6 +175,7 @@ export default function ReceptionistLayout({ children }: { children: React.React
     <ThemeProvider>
       <HotelThemeLoader />
       <SessionWatcher />
+      <ConnectionStatus />
       <div className="flex min-h-screen">
         <Sidebar />
         <main className="flex-1 md:ml-64 pb-20 md:pb-0">

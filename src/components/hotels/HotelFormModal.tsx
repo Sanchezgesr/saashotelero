@@ -9,6 +9,7 @@ import type { Hotel } from '@/types'
 import { calculateExpiry } from '@/lib/utils/plans'
 import type { PlanConfig } from '@/lib/utils/plans'
 import { getPlans } from '@/app/(super-admin)/admin/plans/actions'
+import { verifyLucodeToken } from '@/lib/facturacion/lucode'
 
 interface HotelFormModalProps {
   open: boolean
@@ -19,9 +20,12 @@ interface HotelFormModalProps {
 
 export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelFormModalProps) {
   const [plans, setPlans] = useState<PlanConfig[]>([])
+  const [tokenStatus, setTokenStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle')
+  const [tokenMessage, setTokenMessage] = useState('')
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     name: '', ruc: '', city: '', address: '', phone: '',
-    plan: '', plan_expires_at: '',
+    plan: '', plan_expires_at: '', lucode_token: '',
   })
 
   useEffect(() => { getPlans().then(setPlans) }, [])
@@ -41,12 +45,14 @@ export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelF
         address: selectedHotel.address || '', phone: selectedHotel.phone || '',
         plan: selectedHotel.plan,
         plan_expires_at: selectedHotel.plan_expires_at?.split('T')[0] ?? calculateExpiry(plans.find(p => p.name === selectedHotel.plan)?.duration_days ?? 30).split('T')[0],
+        lucode_token: '',
       })
     } else {
       setForm({
         name: '', ruc: '', city: '', address: '', phone: '',
         plan: defaultPlan,
         plan_expires_at: calculateExpiry(plans[0]?.duration_days ?? 30).split('T')[0],
+        lucode_token: '',
       })
     }
   }, [selectedHotel, open, plans])
@@ -54,31 +60,39 @@ export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.city) { toast.error('Nombre y Ciudad son requeridos'); return }
+    setSaving(true)
     const supabase = createClient()
 
-    if (selectedHotel) {
-      const { error } = await supabase.from('hotels').update({
-        name: form.name, ruc: form.ruc || null, city: form.city,
-        address: form.address || null, phone: form.phone || null,
-        plan: form.plan,
-        plan_expires_at: form.plan_expires_at ? new Date(form.plan_expires_at).toISOString() : null,
-      }).eq('id', selectedHotel.id)
-      if (error) { toast.error('Error al actualizar hotel: ' + error.message) }
-      else { toast.success('Hotel actualizado exitosamente'); onClose(); onSaved() }
-    } else {
-      const formData = new FormData()
-      formData.append('name', form.name); formData.append('ruc', form.ruc)
-      formData.append('city', form.city); formData.append('address', form.address)
-      formData.append('phone', form.phone); formData.append('plan', form.plan)
-      const res = await createHotel(formData)
-      if (res.error) { toast.error('Error al crear hotel: ' + res.error) }
-      else {
-        if (res.data?.id) {
-          const p = plans.find(x => x.name === form.plan)
-          await supabase.from('hotels').update({ plan_expires_at: calculateExpiry(p?.duration_days ?? 30) }).eq('id', res.data.id)
+    try {
+      if (selectedHotel) {
+        const { error } = await supabase.from('hotels').update({
+          name: form.name, ruc: form.ruc || null, city: form.city,
+          address: form.address || null, phone: form.phone || null,
+          plan: form.plan,
+          plan_expires_at: form.plan_expires_at ? new Date(form.plan_expires_at).toISOString() : null,
+        }).eq('id', selectedHotel.id)
+        if (error) { toast.error('Error al actualizar hotel: ' + error.message) }
+        else { toast.success('Hotel actualizado exitosamente'); onClose(); onSaved() }
+      } else {
+        const formData = new FormData()
+        formData.append('name', form.name); formData.append('ruc', form.ruc)
+        formData.append('city', form.city); formData.append('address', form.address)
+        formData.append('phone', form.phone); formData.append('plan', form.plan)
+        formData.append('lucode_token', form.lucode_token)
+        const res = await createHotel(formData)
+        if (res.error) { toast.error('Error al crear hotel: ' + res.error) }
+        else {
+          if (res.data?.id) {
+            const p = plans.find(x => x.name === form.plan)
+            await supabase.from('hotels').update({ plan_expires_at: calculateExpiry(p?.duration_days ?? 30) }).eq('id', res.data.id)
+          }
+          toast.success('Hotel registrado exitosamente'); onClose(); onSaved()
         }
-        toast.success('Hotel registrado exitosamente'); onClose(); onSaved()
       }
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -141,15 +155,41 @@ export function HotelFormModal({ open, onClose, onSaved, selectedHotel }: HotelF
               <input type="date" value={form.plan_expires_at} readOnly
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" />
             </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Token Lucode (facturación electrónica)</label>
+              <div className="flex gap-2">
+                <input type="text" value={form.lucode_token} onChange={(e) => { setForm({...form, lucode_token: e.target.value}); setTokenStatus('idle'); setTokenMessage('') }}
+                  placeholder="Token de API para SUNAT"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <button type="button" onClick={async () => {
+                  if (!form.lucode_token.trim()) { toast.error('Ingresa un token para verificar'); return }
+                  setTokenStatus('verifying')
+                  setTokenMessage('Verificando...')
+                  const res = await verifyLucodeToken(form.lucode_token.trim())
+                  setTokenStatus(res.valid ? 'valid' : 'invalid')
+                  setTokenMessage(res.message)
+                  if (res.valid) toast.success('Token Lucode verificado correctamente')
+                  else toast.error(res.message)
+                }} disabled={tokenStatus === 'verifying'}
+                  className="px-3 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900 disabled:opacity-50 whitespace-nowrap">
+                  {tokenStatus === 'verifying' ? 'Verificando...' : 'Verificar'}
+                </button>
+              </div>
+              {tokenStatus !== 'idle' && (
+                <p className={`text-xs mt-1 ${tokenStatus === 'valid' ? 'text-green-600' : 'text-red-600'}`}>
+                  {tokenStatus === 'verifying' ? 'Verificando token...' : tokenMessage}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button type="button" onClick={onClose}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer">
               Cancelar
             </button>
-            <button type="submit"
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors cursor-pointer">
-              {selectedHotel ? 'Guardar Cambios' : 'Registrar Hotel'}
+            <button type="submit" disabled={saving}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors cursor-pointer">
+              {saving ? 'Guardando...' : (selectedHotel ? 'Guardar Cambios' : 'Registrar Hotel')}
             </button>
           </div>
         </form>

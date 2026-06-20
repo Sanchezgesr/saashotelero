@@ -20,6 +20,7 @@ export const createHotelSchema = z.object({
   city:    z.string().max(100).optional().or(z.literal('')),
   phone:   z.string().max(20).optional().or(z.literal('')),
   plan:    z.enum(['basico_mensual', 'basico_trimestral', 'basico_semestral', 'basico_anual', 'pro_mensual', 'pro_trimestral', 'pro_semestral', 'pro_anual']),
+  lucode_token: z.string().optional().or(z.literal('')),
 })
 
 export const createGuestSchema = z.object({
@@ -31,10 +32,20 @@ export const createGuestSchema = z.object({
   nationality: z.string().max(50).optional().or(z.literal('')),
 })
 
+export const INCOME_CATEGORIES = ['checkin', 'service', 'other'] as const
+export const EXPENSE_CATEGORIES = [
+  'Limpieza y mantenimiento',
+  'Servicios básicos',
+  'Compras de insumos',
+  'Comisiones',
+  'Gastos de personal',
+  'Otros',
+] as const
+
 export const cashMovementSchema = z.object({
   hotel_id:       z.string().uuid(),
   type:           z.enum(['income', 'expense']),
-  category:       z.enum(['checkin', 'service', 'supply', 'salary', 'other']),
+  category:       z.string().min(1).max(50),
   amount:         z.number().positive().max(999999),
   description:    z.string().max(300).trim(),
   payment_method: z.enum(['cash', 'card', 'yape', 'plin']),
@@ -47,7 +58,10 @@ export const emitirComprobanteSchema = z.object({
   cliente_tipo_documento: z.enum(['1', '6'], { message: 'Tipo documento: 1=DNI, 6=RUC' }),
   cliente_numero_documento: z.string(),
   cliente_denominacion: z.string().min(1).max(100).trim(),
-  cliente_direccion: z.string().max(200).trim(),
+  cliente_direccion: z.preprocess(
+    (v) => (v == null ? '' : v),
+    z.string().max(200).trim()
+  ),
 }).refine(data => {
   if (data.cliente_tipo_documento === '1') return /^\d{8}$/.test(data.cliente_numero_documento)
   if (data.cliente_tipo_documento === '6') return /^\d{11}$/.test(data.cliente_numero_documento)

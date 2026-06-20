@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
-import { AlertTriangle, Plus, Lock } from 'lucide-react'
+import { AlertTriangle, Plus, Lock, Download, Printer } from 'lucide-react'
 import { toast } from 'sonner'
-import { localDate, tzOffset, fmtTime } from '@/lib/utils/dates'
+import { localDate, tzOffset, fmtTime, fmtDate } from '@/lib/utils/dates'
 import { performCashClosure } from '@/app/(hotel-admin)/hotel/cash/actions'
 import { calcSummary } from '@/lib/cash/calculations'
+import { exportExcel } from '@/lib/cash/exports'
 import type { CashMovement, CashClosure, CashSummary } from '@/types'
 import { CashForm } from '@/components/cash/CashForm'
 import { CashSummaryCards } from '@/components/cash/CashSummaryCards'
@@ -24,19 +25,21 @@ export function CashTodayTab() {
   const [showForm, setShowForm] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [closureNotes, setClosureNotes] = useState('')
+  const [selectedDate, setSelectedDate] = useState(localDate())
 
-  const fetchData = async () => {
+  const fetchData = async (date?: string) => {
     if (!profile?.hotel_id) return
-    const today = localDate()
-    const nd = new Date()
+    const day = date ?? selectedDate
+    const nd = new Date(day + 'T00:00:00')
     nd.setDate(nd.getDate() + 1)
     const nextDay = localDate(nd)
-    const todayStart = `${today}T00:00:00${tzOffset()}`
-    const todayEnd = `${nextDay}T00:00:00${tzOffset()}`
+    const dayStart = `${day}T00:00:00${tzOffset()}`
+    const dayEnd = `${nextDay}T00:00:00${tzOffset()}`
 
     const { data: lastClosures } = await supabase
       .from('cash_closures').select('closed_at')
       .eq('hotel_id', profile.hotel_id)
+      .lte('closed_at', dayEnd)
       .order('closed_at', { ascending: false }).limit(1)
 
     const lastClosureAt = lastClosures?.[0]?.closed_at
@@ -44,7 +47,8 @@ export function CashTodayTab() {
     let query = supabase
       .from('cash_movements').select('*, profiles(full_name)')
       .eq('hotel_id', profile.hotel_id)
-      .lt('created_at', todayEnd)
+      .gte('created_at', dayStart)
+      .lt('created_at', dayEnd)
 
     if (lastClosureAt) {
       query = query.gte('created_at', lastClosureAt)
@@ -57,7 +61,7 @@ export function CashTodayTab() {
 
     const { data: closuresToday } = await supabase
       .from('cash_closures').select('*, profiles(full_name, role)')
-      .eq('hotel_id', profile.hotel_id).eq('date', localDate())
+      .eq('hotel_id', profile.hotel_id).eq('date', day)
       .order('closed_at', { ascending: false })
     setTodayClosures((closuresToday ?? []).map((c: any) => ({ ...c, closed_by_name: c.profiles?.full_name, closed_by_role: c.profiles?.role })))
   }
@@ -82,7 +86,12 @@ export function CashTodayTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
+      <div className="flex items-end gap-2">
+        <div>
+          <label className="block text-sm font-medium mb-1">Fecha</label>
+          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); fetchData(e.target.value) }}
+            className="border border-border rounded-lg px-3 py-2 text-sm" />
+        </div>
         <button onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
           <Plus size={18} /> {showForm ? 'Cerrar' : 'Movimiento'}
@@ -101,6 +110,25 @@ export function CashTodayTab() {
       ))}
 
       <CashSummaryCards summary={summary} />
+
+      {movements.length > 0 && (
+        <div className="flex items-center justify-end gap-2">
+          <button onClick={() => {
+            const rows = movements.map(m => ({
+              Fecha: fmtDate(m.created_at),
+              Tipo: m.type === 'income' ? 'Ingreso' : 'Egreso',
+              Categoría: m.category,
+              Monto: Number(m.amount).toFixed(2),
+              'Método de pago': m.payment_method,
+              Descripción: m.description || '',
+            }))
+            exportExcel(rows, `caja_${selectedDate}`)
+          }}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded border border-border">
+            <Download size={14} /> CSV
+          </button>
+        </div>
+      )}
 
       {showForm && <CashForm hotelId={profile?.hotel_id!} onCreated={() => { setShowForm(false); fetchData() }} />}
       <CashMovementsTable movements={movements} />
